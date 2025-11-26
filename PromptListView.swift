@@ -1,10 +1,13 @@
 import SwiftUI
 
-// The main view for the "Prompts" panel
 struct PromptListView: View {
     @EnvironmentObject var promptStore: PromptStore
-    @State private var selection: Prompt.ID?
     @State private var searchText: String = ""
+    @State private var selectedPromptID: UUID?
+    @State private var showAddPrompt = false
+    @State private var showMasterPromptEditor = false
+    @State private var masterPrompt: String = ""
+    private let masterPromptUserDefaultsKey = "masterPrompt"
 
     var filteredPrompts: [Prompt] {
         if searchText.isEmpty {
@@ -18,103 +21,328 @@ struct PromptListView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selection) {
-                ForEach(filteredPrompts) { prompt in
-                    NavigationLink(value: prompt.id) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(prompt.name)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            Text(prompt.content)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(.vertical, 8)
+        VStack {
+            // Master Prompt Section
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Master Prompt")
+                        .font(.headline)
+                    Spacer()
+                    Button(action: { showMasterPromptEditor = true }) {
+                        Image(systemName: "pencil")
                     }
-                }
-            }
-            .searchable(text: $searchText, placement: .sidebar)
-            .navigationTitle("Prompts")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: addPrompt) {
-                        Label("Add Prompt", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            if let selectedPromptID = selection,
-               let index = promptStore.prompts.firstIndex(where: { $0.id == selectedPromptID }) {
-                PromptEditorView(prompt: $promptStore.prompts[index])
-                    .environmentObject(promptStore)
-            } else {
-                ContentUnavailableView("Select a Prompt", systemImage: "text.bubble", description: Text("Select a prompt from the list or create a new one."))
-            }
-        }
-    }
-
-    private func addPrompt() {
-        let newPrompt = Prompt(name: "New Prompt", content: "")
-        promptStore.addPrompt(newPrompt)
-        selection = newPrompt.id
-    }
-}
-
-// The detail view for editing a single prompt
-struct PromptEditorView: View {
-    @EnvironmentObject var promptStore: PromptStore
-    @Binding var prompt: Prompt
-    @State private var showDeleteConfirmation = false
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Name Section
-                GroupBox(label: Label("Name", systemImage: "tag")) {
-                    TextField("Enter prompt name", text: $prompt.name)
-                        .textFieldStyle(.plain)
-                        .font(.title3)
-                        .padding(8)
+                    .buttonStyle(.borderless)
                 }
                 
-                // Content Section
-                GroupBox(label: Label("Content", systemImage: "text.alignleft")) {
-                    TextEditor(text: $prompt.content)
-                        .font(.body.monospaced())
-                        .scrollContentBackground(.hidden)
-                        .padding(8)
-                        .frame(minHeight: 100)
-                }
+                Text("This prompt will be added before every specific prompt you run.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
-                // Delete Button
-                Button(role: .destructive, action: { showDeleteConfirmation = true }) {
-                    Label("Delete Prompt", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large)
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-                .padding(.top, 10)
+                Text(masterPrompt)
+                    .font(.caption)
+                    .textSelection(.enabled)
+                    .padding()
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(6)
+                    .lineLimit(3)
             }
             .padding()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .navigationTitle(prompt.name)
-        .alert("Delete Prompt?", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
-                deleteCurrentPrompt()
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+            .padding()
+            
+            Divider()
+                .padding(.horizontal)
+            
+            // Prompts Section
+            if promptStore.prompts.isEmpty {
+                ContentUnavailableView("No Prompts", systemImage: "text.bubble", description: Text("Create your first prompt to get started."))
+            } else {
+                List {
+                    ForEach(filteredPrompts) { prompt in
+                        PromptRowCard(prompt: prompt, isSelected: selectedPromptID == prompt.id)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedPromptID = selectedPromptID == prompt.id ? nil : prompt.id
+                            }
+                            .padding(.vertical, 4)
+                    }
+                    .onDelete(perform: deletePrompts)
+                }
+                .listStyle(.plain)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Are you sure you want to delete '\(prompt.name)'? This action cannot be undone.")
+        }
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Search prompts")
+        .navigationTitle("Prompts")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { showAddPrompt = true }) {
+                    Label("Add Prompt", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showAddPrompt) {
+            PromptEditorSheet(
+                prompt: Prompt(name: "New Prompt", content: ""),
+                isNew: true,
+                onSave: { newPrompt in
+                    promptStore.addPrompt(newPrompt)
+                    showAddPrompt = false
+                    selectedPromptID = newPrompt.id
+                }
+            )
+        }
+        .sheet(isPresented: $showMasterPromptEditor) {
+            MasterPromptEditorSheet(masterPrompt: $masterPrompt)
+        }
+        .onChange(of: selectedPromptID) {
+            // Handle opening editor sheet for selected prompt
+            if let selectedPromptID = selectedPromptID,
+               let index = promptStore.prompts.firstIndex(where: { $0.id == selectedPromptID }) {
+                DispatchQueue.main.async {
+                    // Open the editor sheet by triggering a state change
+                }
+            }
+        }
+        .onAppear {
+            masterPrompt = UserDefaults.standard.string(forKey: masterPromptUserDefaultsKey) ?? "You are a helpful assistant."
         }
     }
     
-    private func deleteCurrentPrompt() {
-        promptStore.deletePrompt(id: prompt.id)
+    private func deletePrompts(at offsets: IndexSet) {
+        promptStore.deletePrompt(at: offsets)
+        selectedPromptID = nil
+    }
+}
+
+struct PromptRowCard: View {
+    let prompt: Prompt
+    let isSelected: Bool
+    @State private var showEditor = false
+    @EnvironmentObject var promptStore: PromptStore
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(prompt.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Text(prompt.content)
+                        .lineLimit(2)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "chevron.up")
+                        .foregroundColor(.secondary)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            if isSelected {
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Content")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    Text(prompt.content)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .padding()
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .cornerRadius(6)
+                    
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            ClipboardManager.write(prompt.content)
+                        }) {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button(action: { showEditor = true }) {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Spacer()
+                        
+                        Button(role: .destructive, action: {
+                            promptStore.deletePrompt(id: prompt.id)
+                        }) {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .sheet(isPresented: $showEditor) {
+            PromptEditorSheet(
+                prompt: prompt,
+                isNew: false,
+                onSave: { updatedPrompt in
+                    if let index = promptStore.prompts.firstIndex(where: { $0.id == updatedPrompt.id }) {
+                        promptStore.prompts[index] = updatedPrompt
+                    }
+                }
+            )
+        }
+    }
+}
+
+struct PromptEditorSheet: View {
+    @State var prompt: Prompt
+    let isNew: Bool
+    let onSave: (Prompt) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            HStack {
+                Text(isNew ? "New Prompt" : "Edit Prompt")
+                    .font(.headline)
+                Spacer()
+                Button("Close") {
+                    dismiss()
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding()
+            
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading) {
+                    Text("Name")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    TextField("Prompt name", text: $prompt.name)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                VStack(alignment: .leading) {
+                    Text("Content")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    TextEditor(text: $prompt.content)
+                        .frame(minHeight: 150)
+                        .font(.body.monospaced())
+                        .scrollContentBackground(.hidden)
+                        .border(Color.gray.opacity(0.2))
+                        .cornerRadius(6)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            
+            HStack(spacing: 12) {
+                Button("Cancel", role: .cancel) {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                
+                Spacer()
+                
+                Button("Save") {
+                    onSave(prompt)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+        }
+        .frame(minWidth: 500, minHeight: 400)
+    }
+}
+
+struct MasterPromptEditorSheet: View {
+    @Binding var masterPrompt: String
+    @Environment(\.dismiss) var dismiss
+    private let userDefaultsKey = "masterPrompt"
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            HStack {
+                Text("Master Prompt")
+                    .font(.headline)
+                Spacer()
+                Button("Close") {
+                    dismiss()
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding()
+            
+            VStack(alignment: .leading) {
+                Text("Description")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                Text("This prompt will be added before every specific prompt you run. Use it to set the global tone, context, or instructions for the AI.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            
+            VStack(alignment: .leading) {
+                Text("Content")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                TextEditor(text: $masterPrompt)
+                    .font(.body.monospaced())
+                    .scrollContentBackground(.hidden)
+                    .border(Color.gray.opacity(0.2))
+                    .cornerRadius(6)
+            }
+            .padding()
+            
+            Spacer()
+            
+            HStack(spacing: 12) {
+                Button("Cancel", role: .cancel) {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
+                
+                Spacer()
+                
+                Button("Save") {
+                    UserDefaults.standard.set(masterPrompt, forKey: userDefaultsKey)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+        }
+        .frame(minWidth: 500, minHeight: 400)
     }
 }
 

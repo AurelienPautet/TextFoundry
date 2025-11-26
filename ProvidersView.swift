@@ -4,7 +4,12 @@ struct ProviderSettingsView: View {
     @EnvironmentObject var modelStore: ModelStore
     @AppStorage("lmStudioAddress") private var lmStudioAddress: String = "http://localhost:1234"
     @AppStorage("geminiAPIKey") private var geminiAPIKey: String = ""
+    @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
+    @AppStorage("grokAPIKey") private var grokAPIKey: String = ""
+    
     @State private var newModelName: String = ""
+    @State private var newOpenAIModelName: String = ""
+    @State private var newGrokModelName: String = ""
 
     var body: some View {
         Form {
@@ -16,51 +21,62 @@ struct ProviderSettingsView: View {
                     .foregroundColor(.secondary)
             }
             
+            Section("OpenAI") {
+                SecureField("API Key", text: $openAIAPIKey)
+                    .textFieldStyle(.roundedBorder)
+                
+                if !modelStore.openAIModels.isEmpty {
+                    Text("Available Models")
+                        .font(.headline)
+                        .padding(.top, 4)
+                    
+                    ForEach(modelStore.openAIModels, id: \.self) { model in
+                        Text(model)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            Section("xAI Grok") {
+                SecureField("API Key", text: $grokAPIKey)
+                    .textFieldStyle(.roundedBorder)
+                
+                if !modelStore.grokModels.isEmpty {
+                    Text("Available Models")
+                        .font(.headline)
+                        .padding(.top, 4)
+                    
+                    ForEach(modelStore.grokModels, id: \.self) { model in
+                        Text(model)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
             Section("Google Gemini") {
                 SecureField("API Key", text: $geminiAPIKey)
                     .textFieldStyle(.roundedBorder)
                 Link("Get API Key", destination: URL(string: "https://makersuite.google.com/app/apikey")!)
                     .font(.caption)
                 
-                Text("Models")
-                    .font(.headline)
-                
-                ForEach(modelStore.models, id: \.self) { model in
-                    HStack {
-                        Text(model)
-                        Spacer()
-                        Button(action: { modelStore.deleteModel(named: model) }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
-                HStack {
-                    TextField("Add Model (e.g., gemini-1.5-pro)", text: $newModelName)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit(addModel)
+                if !modelStore.models.isEmpty {
+                    Text("Available Models")
+                        .font(.headline)
+                        .padding(.top, 4)
                     
-                    Button(action: addModel) {
-                        Image(systemName: "plus.circle.fill")
+                    ForEach(modelStore.models, id: \.self) { model in
+                        Text(model)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .disabled(newModelName.isEmpty)
-                    .buttonStyle(.borderless)
                 }
             }
         }
         .formStyle(.grouped)
         .padding()
         .navigationTitle("Provider Settings")
-    }
-    
-    private func addModel() {
-        let trimmed = newModelName.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
-            modelStore.addModel(trimmed)
-            newModelName = ""
-        }
     }
 }
 

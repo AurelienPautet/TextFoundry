@@ -74,7 +74,7 @@ class HotkeyManager {
         let startTime = Date()
         
         // Play start sound
-        NSSound(named: "Tink")?.play()
+        SoundManager.shared.play(named: "Tink")
         
         // We no longer restore the original clipboard so the user keeps the corrected text
         // let originalClipboardContent = ClipboardManager.read()
@@ -83,7 +83,7 @@ class HotkeyManager {
         try? await Task.sleep(for: .milliseconds(200))
         guard let selectedText = ClipboardManager.read(), !selectedText.isEmpty else {
             print("Hotkey Error: No text selected or clipboard is empty.")
-            NSSound(named: "Basso")?.play() // Play error sound
+            SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .ready }
             return
         }
@@ -92,12 +92,17 @@ class HotkeyManager {
         let providerName = defaults.string(forKey: "selectedAIProvider") ?? "Gemini"
         let geminiModel = defaults.string(forKey: "selectedGeminiModel") ?? "gemini-pro"
         let lmStudioModel = defaults.string(forKey: "selectedLMStudioModel") ?? "local-model"
+        let openAIModel = defaults.string(forKey: "selectedOpenAIModel") ?? "gpt-4o"
+        let grokModel = defaults.string(forKey: "selectedGrokModel") ?? "grok-beta"
+        
         let geminiAPIKey = defaults.string(forKey: "geminiAPIKey") ?? ""
         let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        let openAIAPIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
+        let grokAPIKey = defaults.string(forKey: "grokAPIKey") ?? ""
         
         guard let selectedPrompt = self.promptStore?.prompts.first(where: { $0.id == promptID }) else {
             print("Hotkey Error: Could not find prompt with ID \(promptID).")
-            NSSound(named: "Basso")?.play() // Play error sound
+            SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .error(message: "Prompt not found.") }
             return
         }
@@ -115,10 +120,25 @@ class HotkeyManager {
             provider = .gemini
             apiKey = geminiAPIKey
             modelName = geminiModel
+        case "OpenAI":
+            provider = .openAI
+            apiKey = openAIAPIKey
+            modelName = openAIModel
+        case "xAI Grok":
+            provider = .grok
+            apiKey = grokAPIKey
+            modelName = grokModel
         default:
             print("Hotkey Error: Invalid provider found in UserDefaults.")
-            NSSound(named: "Basso")?.play() // Play error sound
+            SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .error(message: "Invalid provider.") }
+            return
+        }
+        
+        if apiKey.isEmpty {
+            print("Hotkey Error: Missing API Key for \(providerName).")
+            SoundManager.shared.play(named: "Basso")
+            DispatchQueue.main.async { self.appState?.status = .error(message: "Missing API Key for \(providerName).") }
             return
         }
 
@@ -126,7 +146,7 @@ class HotkeyManager {
             let masterPrompt = defaults.string(forKey: "masterPrompt") ?? ""
             let combinedSystemPrompt = "\(masterPrompt)\n\n\(selectedPrompt.content)"
             
-            let correctedText = try await APIService.shared.sendPrompt(
+            let response = try await APIService.shared.sendPrompt(
                 to: provider,
                 systemPrompt: combinedSystemPrompt,
                 userPrompt: selectedText,
@@ -134,34 +154,161 @@ class HotkeyManager {
                 modelName: modelName
             )
             
-            ClipboardManager.write(correctedText)
+            ClipboardManager.write(response.text)
             try? await Task.sleep(for: .milliseconds(100))
             KeyboardManager.paste()
             
             // Play success sound
-            NSSound(named: "Glass")?.play()
+            SoundManager.shared.play(named: "Glass")
             
             // Save to history
             let duration = Date().timeIntervalSince(startTime)
+            let tps = duration > 0 ? Double(response.tokenCount) / duration : 0
+            
             let historyItem = CorrectionHistoryItem(
                 originalText: selectedText,
-                correctedText: correctedText,
+                correctedText: response.text,
                 date: Date(),
                 duration: duration,
                 provider: providerName,
-                model: modelName
+                model: modelName,
+                timeToFirstToken: response.timeToFirstToken,
+                tokenCount: response.tokenCount,
+                tokensPerSecond: tps,
+                retryCount: response.retryCount
             )
             self.historyStore?.addItem(historyItem)
             
-            DispatchQueue.main.async { self.appState?.status = .ready }
+            DispatchQueue.main.async {
+                self.appState?.lastRunStats = historyItem
+                self.appState?.status = .ready
+            }
             
         } catch {
             print("Hotkey Error: API call failed. \(error.localizedDescription)")
-            NSSound(named: "Basso")?.play() // Play error sound
+            SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .error(message: "API Error.") }
         }
     }
+    
+    func correctClipboard(promptID: UUID) async {
+        DispatchQueue.main.async { self.appState?.status = .busy }
+        
+        let startTime = Date()
+        
+        // Play start sound
+        SoundManager.shared.play(named: "Tink")
+        
+        guard let clipboardText = ClipboardManager.read(), !clipboardText.isEmpty else {
+            print("Clipboard Error: Clipboard is empty.")
+            SoundManager.shared.play(named: "Basso") // Play error sound
+            DispatchQueue.main.async { self.appState?.status = .error(message: "Clipboard is empty.") }
+            return
+        }
 
+        let defaults = UserDefaults.standard
+        let providerName = appState?.selectedAIProvider ?? "Gemini"
+        
+        // Get models from AppState if possible, otherwise fallback to defaults
+        let geminiModel = appState?.selectedGeminiModel ?? defaults.string(forKey: "selectedGeminiModel") ?? "gemini-pro"
+        let lmStudioModel = appState?.selectedLMStudioModel ?? defaults.string(forKey: "selectedLMStudioModel") ?? "local-model"
+        let openAIModel = appState?.selectedOpenAIModel ?? defaults.string(forKey: "selectedOpenAIModel") ?? "gpt-4o"
+        let grokModel = appState?.selectedGrokModel ?? defaults.string(forKey: "selectedGrokModel") ?? "grok-beta"
+        
+        let geminiAPIKey = defaults.string(forKey: "geminiAPIKey") ?? ""
+        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        let openAIAPIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
+        let grokAPIKey = defaults.string(forKey: "grokAPIKey") ?? ""
+        
+        guard let selectedPrompt = self.promptStore?.prompts.first(where: { $0.id == promptID }) else {
+            print("Clipboard Error: Could not find prompt with ID \(promptID).")
+            SoundManager.shared.play(named: "Basso") // Play error sound
+            DispatchQueue.main.async { self.appState?.status = .error(message: "Prompt not found.") }
+            return
+        }
+        
+        let provider: APIService.AIProvider
+        let apiKey: String
+        let modelName: String
+
+        switch providerName {
+        case "LM Studio":
+            provider = .lmStudio
+            apiKey = lmStudioAddress
+            modelName = lmStudioModel.isEmpty ? "local-model" : lmStudioModel
+        case "Gemini":
+            provider = .gemini
+            apiKey = geminiAPIKey
+            modelName = geminiModel
+        case "OpenAI":
+            provider = .openAI
+            apiKey = openAIAPIKey
+            modelName = openAIModel
+        case "xAI Grok":
+            provider = .grok
+            apiKey = grokAPIKey
+            modelName = grokModel
+        default:
+            print("Clipboard Error: Invalid provider found.")
+            SoundManager.shared.play(named: "Basso") // Play error sound
+            DispatchQueue.main.async { self.appState?.status = .error(message: "Invalid provider.") }
+            return
+        }
+        
+        if apiKey.isEmpty {
+            print("Clipboard Error: Missing API Key for \(providerName).")
+            SoundManager.shared.play(named: "Basso")
+            DispatchQueue.main.async { self.appState?.status = .error(message: "Missing API Key for \(providerName).") }
+            return
+        }
+
+        do {
+            let masterPrompt = defaults.string(forKey: "masterPrompt") ?? ""
+            let combinedSystemPrompt = "\(masterPrompt)\n\n\(selectedPrompt.content)"
+            
+            let response = try await APIService.shared.sendPrompt(
+                to: provider,
+                systemPrompt: combinedSystemPrompt,
+                userPrompt: clipboardText,
+                apiKey: apiKey,
+                modelName: modelName
+            )
+            
+            ClipboardManager.write(response.text)
+            
+            // Play success sound
+            SoundManager.shared.play(named: "Glass")
+            
+            // Save to history
+            let duration = Date().timeIntervalSince(startTime)
+            let tps = duration > 0 ? Double(response.tokenCount) / duration : 0
+            
+            let historyItem = CorrectionHistoryItem(
+                originalText: clipboardText,
+                correctedText: response.text,
+                date: Date(),
+                duration: duration,
+                provider: providerName,
+                model: modelName,
+                timeToFirstToken: response.timeToFirstToken,
+                tokenCount: response.tokenCount,
+                tokensPerSecond: tps,
+                retryCount: response.retryCount
+            )
+            self.historyStore?.addItem(historyItem)
+            
+            DispatchQueue.main.async {
+                self.appState?.lastRunStats = historyItem
+                self.appState?.status = .ready
+            }
+            
+        } catch {
+            print("Clipboard Error: API call failed. \(error.localizedDescription)")
+            SoundManager.shared.play(named: "Basso") // Play error sound
+            DispatchQueue.main.async { self.appState?.status = .error(message: error.localizedDescription) }
+        }
+    }
+    
     deinit {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)

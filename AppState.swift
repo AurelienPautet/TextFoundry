@@ -35,12 +35,27 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(selectedLMStudioModel, forKey: "selectedLMStudioModel")
         }
     }
+    @Published var selectedOpenAIModel: String {
+        didSet {
+            UserDefaults.standard.set(selectedOpenAIModel, forKey: "selectedOpenAIModel")
+        }
+    }
+    @Published var selectedGrokModel: String {
+        didSet {
+            UserDefaults.standard.set(selectedGrokModel, forKey: "selectedGrokModel")
+        }
+    }
     
-    @Published var isAccessibilityGranted: Bool = false
+        @Published var isAccessibilityGranted: Bool = false
+    
+    // Last Run Stats
+    @Published var lastRunStats: CorrectionHistoryItem?
     
     init() {
         self.selectedAIProvider = UserDefaults.standard.string(forKey: "selectedAIProvider") ?? "Gemini"
         self.selectedGeminiModel = UserDefaults.standard.string(forKey: "selectedGeminiModel") ?? ""
         self.selectedLMStudioModel = UserDefaults.standard.string(forKey: "selectedLMStudioModel") ?? ""
+        self.selectedOpenAIModel = UserDefaults.standard.string(forKey: "selectedOpenAIModel") ?? ""
+        self.selectedGrokModel = UserDefaults.standard.string(forKey: "selectedGrokModel") ?? ""
     }
 }

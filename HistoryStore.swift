@@ -10,6 +10,12 @@ struct CorrectionHistoryItem: Identifiable, Codable {
     let duration: TimeInterval
     let provider: String
     let model: String
+    
+    // New metrics
+    var timeToFirstToken: TimeInterval?
+    var tokenCount: Int?
+    var tokensPerSecond: Double?
+    var retryCount: Int?
 }
 
 class HistoryStore: NSObject, ObservableObject {

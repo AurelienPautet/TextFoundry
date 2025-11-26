@@ -18,6 +18,9 @@ struct AI_Corrector_SwiftApp: App {
                 .environmentObject(shortcutStore) // Inject shortcut store
                 .environmentObject(historyStore) // Inject history store
                 .environmentObject(appState)
+                .onAppear {
+                    SoundManager.shared.preloadSounds()
+                }
         } label: {
             MenuBarLabelView(status: appState.status)
         }
@@ -31,6 +34,15 @@ struct AI_Corrector_SwiftApp: App {
                 .environmentObject(shortcutStore) // Inject shortcut store
                 .environmentObject(historyStore) // Inject history store
                 .environmentObject(appState)
+                .task {
+                    // Refresh models on startup
+                    let defaults = UserDefaults.standard
+                    let geminiKey = defaults.string(forKey: "geminiAPIKey") ?? ""
+                    let openAIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
+                    let grokKey = defaults.string(forKey: "grokAPIKey") ?? ""
+                    
+                    await modelStore.refreshAllModels(geminiKey: geminiKey, openAIKey: openAIKey, grokKey: grokKey)
+                }
         }
     }
 }

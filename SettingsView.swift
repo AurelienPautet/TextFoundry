@@ -1,55 +1,233 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var appState: AppState // Add appState
-    @EnvironmentObject var modelStore: ModelStore // Add environment object
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var modelStore: ModelStore
     
-    enum TabSelection: String, CaseIterable, Identifiable {
-        case general = "General" // New General tab
-        case providers = "Providers"
-        case shortcuts = "Shortcuts"
-        
-        var id: String { self.rawValue }
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                if !appState.isAccessibilityGranted {
+                    HStack {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Accessibility Permission Required")
+                                .font(.headline)
+                            Text("Hotkeys require accessibility access to work.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button("Grant Access") {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding()
+                }
+                
+                // General Settings
+                GeneralSettingsCard()
+                
+                // Providers
+                ProvidersCard()
+                    .environmentObject(modelStore)
+                
+                // Shortcuts
+                ShortcutsCard()
+            }
+            .padding()
+        }
+        .navigationTitle("Settings")
     }
-    
-    @State private var selectedTab: TabSelection = .general // Default to General tab
+}
+
+struct GeneralSettingsCard: View {
+    @StateObject private var launchManager = LaunchAtLoginManager()
+    @AppStorage("retryCount") private var retryCount: Int = 0
+    @AppStorage("playSounds") private var playSounds: Bool = true
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !appState.isAccessibilityGranted {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("General")
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.yellow)
-                    Text("Accessibility permission is required for hotkeys to work.")
+                    Label("Launch at Login", systemImage: "arrow.up.right.and.arrow.down.left.rectangle")
                     Spacer()
-                    Button("Open Settings") {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                            NSWorkspace.shared.open(url)
-                        }
+                    if #available(macOS 13.0, *) {
+                        Toggle("", isOn: $launchManager.isEnabled)
                     }
                 }
-                .padding()
-                .background(Color.yellow.opacity(0.1))
-                .border(Color.yellow.opacity(0.3), width: 1)
-            }
-            
-            TabView(selection: $selectedTab) {
-                GeneralSettingsView() // Add the new General Settings view
-                    .tabItem { Label("General", systemImage: "gearshape") }
-                    .tag(TabSelection.general)
                 
-                ProviderSettingsView()
-                    .environmentObject(modelStore) // Inject modelStore
-                    .tabItem { Label("Providers", systemImage: "network") }
-                    .tag(TabSelection.providers)
+                Divider()
                 
-                ShortcutSettingsView()
-                    .tabItem { Label("Shortcuts", systemImage: "keyboard") }
-                    .tag(TabSelection.shortcuts)
+                HStack {
+                    Label("Play Sounds", systemImage: "speaker.wave.2")
+                    Spacer()
+                    Toggle("", isOn: $playSounds)
+                }
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Retry Attempts", systemImage: "arrow.clockwise")
+                        Spacer()
+                        Text("\(retryCount)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Stepper("", value: $retryCount, in: 0...5)
+                }
             }
         }
-        .frame(minWidth: 600, minHeight: 400)
-        .navigationTitle("Settings")
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+}
+
+struct ProvidersCard: View {
+    @EnvironmentObject var modelStore: ModelStore
+    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = "http://localhost:1234"
+    @AppStorage("geminiAPIKey") private var geminiAPIKey: String = ""
+    @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
+    @AppStorage("grokAPIKey") private var grokAPIKey: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("API Providers")
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                // LM Studio
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("LM Studio")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    TextField("Server Address", text: $lmStudioAddress)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                Divider()
+                
+                // Gemini
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Google Gemini")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    SecureField("API Key", text: $geminiAPIKey)
+                        .textFieldStyle(.roundedBorder)
+                    Link("Get API Key", destination: URL(string: "https://makersuite.google.com/app/apikey")!)
+                        .font(.caption2)
+                }
+                
+                Divider()
+                
+                // OpenAI
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("OpenAI")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    SecureField("API Key", text: $openAIAPIKey)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                Divider()
+                
+                // Grok
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("xAI Grok")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    SecureField("API Key", text: $grokAPIKey)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+}
+
+struct ShortcutsCard: View {
+    @EnvironmentObject var promptStore: PromptStore
+    @EnvironmentObject var shortcutStore: ShortcutStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Keyboard Shortcuts")
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Main Shortcut")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    Text("This shortcut runs the prompt currently selected in the menu bar.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    ShortcutEditorRow(shortcut: $shortcutStore.mainShortcut)
+                }
+                
+                Divider()
+                
+                Text("Prompt-Specific Hotkeys")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                
+                ForEach($promptStore.prompts) { $prompt in
+                    ShortcutEditorRow(
+                        promptName: prompt.name,
+                        shortcut: Binding(
+                            get: { shortcutStore.shortcut(for: prompt.id) },
+                            set: { newShortcut in shortcutStore.updateShortcut(newShortcut) }
+                        )
+                    )
+                    if prompt.id != promptStore.prompts.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
 }
 
@@ -57,4 +235,6 @@ struct SettingsView: View {
     SettingsView()
         .environmentObject(AppState())
         .environmentObject(ModelStore())
+        .environmentObject(PromptStore())
+        .environmentObject(ShortcutStore())
 }

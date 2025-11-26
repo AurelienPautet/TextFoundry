@@ -2,6 +2,8 @@ import SwiftUI
 
 struct GeneralSettingsView: View {
     @StateObject private var launchManager = LaunchAtLoginManager()
+    @AppStorage("retryCount") private var retryCount: Int = 0
+    @AppStorage("playSounds") private var playSounds: Bool = true
 
     var body: some View {
         Form {
@@ -16,6 +18,21 @@ struct GeneralSettingsView: View {
                 Text("Startup")
             } footer: {
                 Text("Automatically start AI Corrector when you log in.")
+            }
+            
+            Section {
+                Toggle("Play Sounds", isOn: $playSounds)
+            } header: {
+                Text("Audio")
+            }
+            
+            Section {
+                Stepper("Retry Attempts: \(retryCount)", value: $retryCount, in: 0...5)
+                Text("Number of times to retry if the AI request fails.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Reliability")
             }
         }
         .formStyle(.grouped)

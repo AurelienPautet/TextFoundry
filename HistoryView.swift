@@ -81,10 +81,39 @@ struct HistoryItemRow: View {
             }
             
             HStack {
+                // Metrics
+                HStack(spacing: 12) {
+                    Label(String(format: "%.2fs", item.duration), systemImage: "stopwatch")
+                    
+                    if let ttft = item.timeToFirstToken {
+                        Label(String(format: "TTFT: %.2fs", ttft), systemImage: "bolt")
+                    }
+                    
+                    if let tokens = item.tokenCount {
+                        Label("\(tokens) toks", systemImage: "text.quote")
+                    }
+                    
+                    if let tps = item.tokensPerSecond {
+                        Label(String(format: "%.1f t/s", tps), systemImage: "speedometer")
+                    }
+                    
+                    if let retries = item.retryCount, retries > 0 {
+                        Label("\(retries) retry", systemImage: "arrow.clockwise")
+                            .foregroundColor(.orange)
+                    }
+                }
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                
                 Spacer()
-                Text(String(format: "%.2fs", item.duration))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                
+                Button(action: {
+                    ClipboardManager.write(item.correctedText)
+                }) {
+                    Label("Copy Result", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
         .padding()

@@ -9,9 +9,6 @@ struct MainView: View {
                 Label("Corrector", systemImage: "text.magnifyingglass")
                     .tag(Panel.corrector)
                 
-                Label("Master Prompt", systemImage: "star")
-                    .tag(Panel.masterPrompt)
-                
                 Label("Prompts", systemImage: "list.bullet.rectangle")
                     .tag(Panel.prompts)
                 
@@ -26,14 +23,14 @@ struct MainView: View {
             switch appState.selectedPanel {
             case .corrector:
                 CorrectorView()
-            case .masterPrompt:
-                MasterPromptView()
             case .settings: // Updated to new SettingsView
                 SettingsView()
             case .prompts:
                 PromptListView()
             case .history:
                 HistoryView()
+            case .masterPrompt:
+                PromptListView()
             case .none:
                 Text("Select a category")
             }
