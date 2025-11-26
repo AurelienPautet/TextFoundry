@@ -49,4 +49,8 @@ class PromptStore: ObservableObject {
     func deletePrompt(at offsets: IndexSet) {
         prompts.remove(atOffsets: offsets)
     }
+    
+    func deletePrompt(id: UUID) {
+        prompts.removeAll { $0.id == id }
+    }
 }

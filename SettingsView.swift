@@ -1,36 +1,31 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(\.dismiss) var dismiss
-
-    @State private var lmStudioAddress: String = ""
-    @State private var geminiAPIKey: String = ""
+    enum TabSelection: String, CaseIterable, Identifiable {
+        case general = "General" // New General tab
+        case providers = "Providers"
+        case shortcuts = "Shortcuts"
+        
+        var id: String { self.rawValue }
+    }
+    
+    @State private var selectedTab: TabSelection = .general // Default to General tab
 
     var body: some View {
-        Form {
-            Section("API Endpoints") {
-                TextField("LM Studio Address", text: $lmStudioAddress)
-                SecureField("Gemini API Key", text: $geminiAPIKey)
-            }
-
-            HStack {
-                Spacer()
-                Button("Save") {
-                    UserDefaults.standard.set(lmStudioAddress, forKey: "lmStudioAddress")
-                    UserDefaults.standard.set(geminiAPIKey, forKey: "geminiAPIKey")
-                    print("Settings saved!")
-                    dismiss()
-                }
-                .controlSize(.large)
-                Spacer()
-            }
+        TabView(selection: $selectedTab) {
+            GeneralSettingsView() // Add the new General Settings view
+                .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(TabSelection.general)
+            
+            ProviderSettingsView()
+                .tabItem { Label("Providers", systemImage: "network") }
+                .tag(TabSelection.providers)
+            
+            ShortcutSettingsView()
+                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+                .tag(TabSelection.shortcuts)
         }
-        .onAppear {
-            lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
-            geminiAPIKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
-        }
-        .padding()
-        .frame(minWidth: 400, minHeight: 200)
+        .frame(minWidth: 500, minHeight: 300)
         .navigationTitle("Settings")
     }
 }
