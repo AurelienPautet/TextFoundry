@@ -38,159 +38,172 @@ struct CorrectorView: View {
                     Text("Configuration")
                         .font(.headline)
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Provider")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                        Picker("Provider", selection: $appState.selectedAIProvider) {
-                            ForEach(aiProviders, id: \.self) { Text($0) }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Model")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                        
-                        if appState.selectedAIProvider == "Gemini" {
-                            Picker("Model", selection: $appState.selectedGeminiModel) {
-                                ForEach(modelStore.models, id: \.self) { Text($0) }
+                    HStack(alignment: .top, spacing: 20) {
+                        // Provider Column
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Provider")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.secondary)
+                            Picker("Provider", selection: $appState.selectedAIProvider) {
+                                ForEach(aiProviders, id: \.self) { Text($0) }
                             }
                             .pickerStyle(.menu)
-                        } else if appState.selectedAIProvider == "LM Studio" {
-                            Picker("Model", selection: $appState.selectedLMStudioModel) {
-                                if !modelStore.lmStudioModels.isEmpty {
-                                    ForEach(modelStore.lmStudioModels, id: \.self) { Text($0) }
-                                } else {
-                                    Text("No models found").tag("")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // Model Column
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Model")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.secondary)
+                            
+                            if appState.selectedAIProvider == "Gemini" {
+                                Picker("Model", selection: $appState.selectedGeminiModel) {
+                                    ForEach(modelStore.models, id: \.self) { Text($0) }
+                                }
+                                .pickerStyle(.menu)
+                            } else if appState.selectedAIProvider == "LM Studio" {
+                                Picker("Model", selection: $appState.selectedLMStudioModel) {
+                                    if !modelStore.lmStudioModels.isEmpty {
+                                        ForEach(modelStore.lmStudioModels, id: \.self) { Text($0) }
+                                    } else {
+                                        Text("No models found").tag("")
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            } else if appState.selectedAIProvider == "OpenAI" {
+                                Picker("Model", selection: $appState.selectedOpenAIModel) {
+                                    ForEach(modelStore.openAIModels, id: \.self) { Text($0) }
+                                }
+                                .pickerStyle(.menu)
+                            } else if appState.selectedAIProvider == "xAI Grok" {
+                                Picker("Model", selection: $appState.selectedGrokModel) {
+                                    ForEach(modelStore.grokModels, id: \.self) { Text($0) }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // Prompt Column
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Prompt")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.secondary)
+                            
+                            Picker("Prompt", selection: $selectedPromptID) {
+                                Text("Select Prompt").tag(nil as UUID?)
+                                ForEach(promptStore.prompts) { prompt in
+                                    Text(prompt.name).tag(prompt.id as UUID?)
                                 }
                             }
                             .pickerStyle(.menu)
-                        } else if appState.selectedAIProvider == "OpenAI" {
-                            Picker("Model", selection: $appState.selectedOpenAIModel) {
-                                ForEach(modelStore.openAIModels, id: \.self) { Text($0) }
-                            }
-                            .pickerStyle(.menu)
-                        } else if appState.selectedAIProvider == "xAI Grok" {
-                            Picker("Model", selection: $appState.selectedGrokModel) {
-                                ForEach(modelStore.grokModels, id: \.self) { Text($0) }
-                            }
-                            .pickerStyle(.menu)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    
+                }
+                .padding()
+                .background(Color(nsColor: .controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                
+                // Input & Output Side-by-Side
+                HStack(alignment: .top, spacing: 16) {
+                    // Input Card
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Prompt")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                        
-                        Picker("Prompt", selection: $selectedPromptID) {
-                            Text("Select Prompt").tag(nil as UUID?)
-                            ForEach(promptStore.prompts) { prompt in
-                                Text(prompt.name).tag(prompt.id as UUID?)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-                
-                // Input Card
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Your Input")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { inputText = "" }) {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Clear Input")
-                    }
-                    
-                    TextEditor(text: $inputText)
-                        .font(.body)
-                        .frame(minHeight: 120)
-                        .scrollContentBackground(.hidden)
-                        .border(Color.gray.opacity(0.2))
-                        .cornerRadius(6)
-                }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-                
-                // Output Card
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Corrected Output")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: {
-                            let pasteboard = NSPasteboard.general
-                            pasteboard.clearContents()
-                            pasteboard.setString(correctedText, forType: .string)
-                        }) {
-                            Image(systemName: "doc.on.doc")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Copy Output")
-                    }
-                    
-                    TextEditor(text: $correctedText)
-                        .font(.body)
-                        .frame(minHeight: 120)
-                        .scrollContentBackground(.hidden)
-                        .border(Color.gray.opacity(0.2))
-                        .cornerRadius(6)
-                    
-                    if let stats = appState.lastRunStats {
-                        Divider()
-                        HStack(spacing: 12) {
-                            Label(String(format: "%.2fs", stats.duration), systemImage: "stopwatch")
-                            
-                            if let ttft = stats.timeToFirstToken {
-                                Label(String(format: "TTFT: %.2fs", ttft), systemImage: "bolt")
-                            }
-                            
-                            if let tokens = stats.tokenCount {
-                                Label("\(tokens) toks", systemImage: "text.quote")
-                            }
-                            
-                            if let tps = stats.tokensPerSecond {
-                                Label(String(format: "%.1f t/s", tps), systemImage: "speedometer")
-                            }
-                            
-                            if let retries = stats.retryCount, retries > 0 {
-                                Label("\(retries) retry", systemImage: "arrow.clockwise")
-                                    .foregroundColor(.orange)
-                            }
+                        HStack {
+                            Text("Your Input")
+                                .font(.headline)
                             Spacer()
+                            Button(action: { inputText = "" }) {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Clear Input")
                         }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        
+                        TextEditor(text: $inputText)
+                            .font(.body)
+                            .frame(minHeight: 300)
+                            .scrollContentBackground(.hidden)
+                            .border(Color.gray.opacity(0.2))
+                            .cornerRadius(6)
                     }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .frame(maxWidth: .infinity)
+                    
+                    // Output Card
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Corrected Output")
+                                .font(.headline)
+                            Spacer()
+                            Button(action: {
+                                let pasteboard = NSPasteboard.general
+                                pasteboard.clearContents()
+                                pasteboard.setString(correctedText, forType: .string)
+                            }) {
+                                Image(systemName: "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Copy Output")
+                        }
+                        
+                        TextEditor(text: $correctedText)
+                            .font(.body)
+                            .frame(minHeight: 300)
+                            .scrollContentBackground(.hidden)
+                            .border(Color.gray.opacity(0.2))
+                            .cornerRadius(6)
+                        
+                        if let stats = appState.lastRunStats {
+                            Divider()
+                            HStack(spacing: 12) {
+                                Label(String(format: "%.2fs", stats.duration), systemImage: "stopwatch")
+                                
+                                if let ttft = stats.timeToFirstToken {
+                                    Label(String(format: "TTFT: %.2fs", ttft), systemImage: "bolt")
+                                }
+                                
+                                if let tokens = stats.tokenCount {
+                                    Label("\(tokens) toks", systemImage: "text.quote")
+                                }
+                                
+                                if let tps = stats.tokensPerSecond {
+                                    Label(String(format: "%.1f t/s", tps), systemImage: "speedometer")
+                                }
+                                
+                                if let retries = stats.retryCount, retries > 0 {
+                                    Label("\(retries) retry", systemImage: "arrow.clockwise")
+                                        .foregroundColor(.orange)
+                                }
+                                Spacer()
+                            }
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .frame(maxWidth: .infinity)
                 }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
                 
                 // Error/Status Card
                 if !errorMessage.isEmpty {
@@ -266,15 +279,19 @@ struct CorrectorView: View {
     }
 
     private func runCorrection() async {
+        if isBusy { return }
         appState.status = .busy
+        SoundManager.shared.play(named: "Tink")
 
         guard !inputText.isEmpty else {
             appState.status = .error(message: "Input text cannot be empty.")
+            SoundManager.shared.play(named: "Basso")
             return
         }
 
         guard let selectedPrompt = promptStore.prompts.first(where: { $0.id == selectedPromptID }) else {
             appState.status = .error(message: "Please select a prompt.")
+            SoundManager.shared.play(named: "Basso")
             return
         }
 
@@ -301,11 +318,13 @@ struct CorrectorView: View {
             modelName = appState.selectedGrokModel
         default:
             appState.status = .error(message: "Invalid AI Provider selected.")
+            SoundManager.shared.play(named: "Basso")
             return
         }
         
         guard !apiKey.isEmpty else {
             appState.status = .error(message: "\(appState.selectedAIProvider) API Key or Address is missing.")
+            SoundManager.shared.play(named: "Basso")
             return
         }
 
@@ -338,14 +357,17 @@ struct CorrectorView: View {
                 timeToFirstToken: response.timeToFirstToken,
                 tokenCount: response.tokenCount,
                 tokensPerSecond: tps,
-                retryCount: response.retryCount
+                retryCount: response.retryCount,
+                promptTitle: selectedPrompt.name
             )
             historyStore.addItem(historyItem)
             appState.lastRunStats = historyItem
             
             appState.status = .ready
+            SoundManager.shared.play(named: "Glass")
         } catch {
             appState.status = .error(message: error.localizedDescription)
+            SoundManager.shared.play(named: "Basso")
         }
     }
 

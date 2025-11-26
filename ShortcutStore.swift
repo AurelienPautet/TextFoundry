@@ -29,6 +29,22 @@ class ShortcutStore: ObservableObject {
         }
     }
     
+    // A special shortcut for the Quick Action Panel
+    var quickActionShortcut: Shortcut {
+        get {
+            // Use a fixed UUID for the quick action shortcut
+            let quickActionID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+            return shortcuts.first(where: { $0.id == quickActionID }) ?? Shortcut(id: quickActionID, key: "Space", command: true, shift: true)
+        }
+        set {
+            if let index = shortcuts.firstIndex(where: { $0.id == newValue.id }) {
+                shortcuts[index] = newValue
+            } else {
+                shortcuts.append(newValue)
+            }
+        }
+    }
+    
     // Get a shortcut for a specific prompt ID
     func shortcut(for promptID: UUID) -> Shortcut {
         return shortcuts.first(where: { $0.id == promptID }) ?? Shortcut(id: promptID)

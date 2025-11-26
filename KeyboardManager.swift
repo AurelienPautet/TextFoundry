@@ -25,6 +25,11 @@ class KeyboardManager {
         simulateKeyPress(for: CGKeyCode(kVK_ANSI_V), with: .maskCommand)
     }
     
+    static func pasteAndMatchStyle() {
+        // Simulate Option+Shift+Cmd+V
+        simulateKeyPress(for: CGKeyCode(kVK_ANSI_V), with: [.maskCommand, .maskShift, .maskAlternate])
+    }
+    
     static func keyCode(for char: String) -> CGKeyCode? {
         guard char.count == 1, let character = char.uppercased().first else { return nil }
         // This is a simplified map. A full map is very large.

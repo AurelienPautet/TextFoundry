@@ -56,6 +56,21 @@ struct HistoryItemRow: View {
                     .foregroundColor(.secondary)
             }
             
+            if let promptTitle = item.promptTitle {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Prompt")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(promptTitle)
+                        .lineLimit(1)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(4)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(4)
+                }
+            }
+            
             HStack(alignment: .top) {
                 VStack(alignment: .leading) {
                     Text("Original")

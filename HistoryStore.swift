@@ -16,6 +16,7 @@ struct CorrectionHistoryItem: Identifiable, Codable {
     var tokenCount: Int?
     var tokensPerSecond: Double?
     var retryCount: Int?
+    var promptTitle: String?
 }
 
 class HistoryStore: NSObject, ObservableObject {

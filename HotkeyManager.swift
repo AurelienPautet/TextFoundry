@@ -38,6 +38,10 @@ class HotkeyManager {
     
     private func handle(event: NSEvent) {
         guard let shortcutStore = self.shortcutStore else { return }
+        
+        // Prevent double execution
+        if case .busy = appState?.status { return }
+        
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         
         for shortcut in shortcutStore.shortcuts {
@@ -156,7 +160,12 @@ class HotkeyManager {
             
             ClipboardManager.write(response.text)
             try? await Task.sleep(for: .milliseconds(100))
-            KeyboardManager.paste()
+            
+            if defaults.bool(forKey: "smartPaste") {
+                KeyboardManager.pasteAndMatchStyle()
+            } else {
+                KeyboardManager.paste()
+            }
             
             // Play success sound
             SoundManager.shared.play(named: "Glass")
@@ -175,7 +184,8 @@ class HotkeyManager {
                 timeToFirstToken: response.timeToFirstToken,
                 tokenCount: response.tokenCount,
                 tokensPerSecond: tps,
-                retryCount: response.retryCount
+                retryCount: response.retryCount,
+                promptTitle: selectedPrompt.name
             )
             self.historyStore?.addItem(historyItem)
             
@@ -192,6 +202,7 @@ class HotkeyManager {
     }
     
     func correctClipboard(promptID: UUID) async {
+        if case .busy = appState?.status { return }
         DispatchQueue.main.async { self.appState?.status = .busy }
         
         let startTime = Date()
@@ -293,7 +304,8 @@ class HotkeyManager {
                 timeToFirstToken: response.timeToFirstToken,
                 tokenCount: response.tokenCount,
                 tokensPerSecond: tps,
-                retryCount: response.retryCount
+                retryCount: response.retryCount,
+                promptTitle: selectedPrompt.name
             )
             self.historyStore?.addItem(historyItem)
             

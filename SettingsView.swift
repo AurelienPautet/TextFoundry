@@ -56,6 +56,7 @@ struct GeneralSettingsCard: View {
     @StateObject private var launchManager = LaunchAtLoginManager()
     @AppStorage("retryCount") private var retryCount: Int = 0
     @AppStorage("playSounds") private var playSounds: Bool = true
+    @AppStorage("smartPaste") private var smartPaste: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -81,15 +82,19 @@ struct GeneralSettingsCard: View {
                 
                 Divider()
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Label("Retry Attempts", systemImage: "arrow.clockwise")
-                        Spacer()
-                        Text("\(retryCount)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    Stepper("", value: $retryCount, in: 0...5)
+                HStack {
+                    Label("Smart Paste", systemImage: "doc.on.clipboard")
+                    Spacer()
+                    Toggle("", isOn: $smartPaste)
+                        .help("Pastes text matching the destination style (Option+Shift+Cmd+V)")
+                }
+                
+                Divider()
+                
+                HStack {
+                    Label("Retry Attempts", systemImage: "arrow.clockwise")
+                    Spacer()
+                    Stepper("\(retryCount)", value: $retryCount, in: 0...5)
                 }
             }
         }
