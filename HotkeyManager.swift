@@ -44,6 +44,15 @@ class HotkeyManager {
         
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         
+        // Check Quick Action Shortcut
+        let quickAction = shortcutStore.quickActionShortcut
+        if let qaKeyCode = KeyboardManager.keyCode(for: quickAction.key),
+           flags == NSEvent.ModifierFlags(rawValue: UInt(quickAction.modifierFlags.rawValue)) && event.keyCode == qaKeyCode {
+             print("Quick Action Hotkey pressed!")
+             Task { await self.showQuickActionPanel() }
+             return
+        }
+        
         for shortcut in shortcutStore.shortcuts {
             guard let keyCode = KeyboardManager.keyCode(for: shortcut.key) else { continue }
             
@@ -72,20 +81,61 @@ class HotkeyManager {
         }
     }
 
-    private func performCorrectionAction(for promptID: UUID) async {
-        DispatchQueue.main.async { self.appState?.status = .busy }
+    private func showQuickActionPanel() async {
+        // 1. Copy text
+        KeyboardManager.copy()
+        try? await Task.sleep(for: .milliseconds(200))
+        guard let selectedText = ClipboardManager.read(), !selectedText.isEmpty else {
+            SoundManager.shared.play(named: "Basso")
+            return
+        }
+        
+        // 2. Show Panel
+        DispatchQueue.main.async {
+            guard let promptStore = self.promptStore else { return }
+            let mouseLocation = NSEvent.mouseLocation
+            QuickActionPanel.shared.show(at: mouseLocation, promptStore: promptStore) { [weak self] promptID in
+                // Sync selection
+                UserDefaults.standard.set(promptID.uuidString, forKey: "selectedPromptID")
+                
+                // Hide app to return focus to previous app
+                NSApp.hide(nil)
+                
+                Task {
+                    // Wait a bit for focus to switch back
+                    try? await Task.sleep(for: .milliseconds(300))
+                    await self?.performCorrectionAction(for: promptID, textToCorrect: selectedText)
+                }
+            }
+        }
+    }
+
+    private func performCorrectionAction(for promptID: UUID, textToCorrect: String? = nil) async {
+        DispatchQueue.main.async { 
+            self.appState?.status = .busy 
+            StatusOverlayPanel.shared.show()
+        }
+        
+        defer {
+            DispatchQueue.main.async {
+                StatusOverlayPanel.shared.hide()
+            }
+        }
         
         let startTime = Date()
         
         // Play start sound
         SoundManager.shared.play(named: "Tink")
         
-        // We no longer restore the original clipboard so the user keeps the corrected text
-        // let originalClipboardContent = ClipboardManager.read()
+        var selectedText = textToCorrect
         
-        KeyboardManager.copy()
-        try? await Task.sleep(for: .milliseconds(200))
-        guard let selectedText = ClipboardManager.read(), !selectedText.isEmpty else {
+        if selectedText == nil {
+            KeyboardManager.copy()
+            try? await Task.sleep(for: .milliseconds(200))
+            selectedText = ClipboardManager.read()
+        }
+        
+        guard let finalText = selectedText, !finalText.isEmpty else {
             print("Hotkey Error: No text selected or clipboard is empty.")
             SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .ready }
@@ -153,7 +203,7 @@ class HotkeyManager {
             let response = try await APIService.shared.sendPrompt(
                 to: provider,
                 systemPrompt: combinedSystemPrompt,
-                userPrompt: selectedText,
+                userPrompt: finalText,
                 apiKey: apiKey,
                 modelName: modelName
             )
@@ -175,7 +225,7 @@ class HotkeyManager {
             let tps = duration > 0 ? Double(response.tokenCount) / duration : 0
             
             let historyItem = CorrectionHistoryItem(
-                originalText: selectedText,
+                originalText: finalText,
                 correctedText: response.text,
                 date: Date(),
                 duration: duration,

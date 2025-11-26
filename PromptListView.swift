@@ -62,16 +62,14 @@ struct PromptListView: View {
             if promptStore.prompts.isEmpty {
                 ContentUnavailableView("No Prompts", systemImage: "text.bubble", description: Text("Create your first prompt to get started."))
             } else {
-                List {
+                List(selection: $selectedPromptID) {
                     ForEach(filteredPrompts) { prompt in
                         PromptRowCard(prompt: prompt, isSelected: selectedPromptID == prompt.id)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedPromptID = selectedPromptID == prompt.id ? nil : prompt.id
-                            }
+                            .tag(prompt.id)
                             .padding(.vertical, 4)
                     }
                     .onDelete(perform: deletePrompts)
+                    .onMove(perform: movePrompts)
                 }
                 .listStyle(.plain)
             }
@@ -116,6 +114,12 @@ struct PromptListView: View {
     private func deletePrompts(at offsets: IndexSet) {
         promptStore.deletePrompt(at: offsets)
         selectedPromptID = nil
+    }
+    
+    private func movePrompts(from source: IndexSet, to destination: Int) {
+        if searchText.isEmpty {
+            promptStore.movePrompt(from: source, to: destination)
+        }
     }
 }
 

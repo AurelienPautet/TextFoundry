@@ -206,6 +206,20 @@ struct ShortcutsCard: View {
                 
                 Divider()
                 
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Quick Action Panel")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    Text("Opens a floating panel to choose a prompt.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    ShortcutEditorRow(shortcut: $shortcutStore.quickActionShortcut)
+                }
+                
+                Divider()
+                
                 Text("Prompt-Specific Hotkeys")
                     .font(.caption)
                     .fontWeight(.bold)
