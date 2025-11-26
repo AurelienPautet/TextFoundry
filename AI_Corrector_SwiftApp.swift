@@ -6,6 +6,7 @@ struct AI_Corrector_SwiftApp: App {
     @StateObject private var promptStore = PromptStore()
     @StateObject private var modelStore = ModelStore()
     @StateObject private var shortcutStore = ShortcutStore() // Add shortcut store
+    @StateObject private var historyStore = HistoryStore() // Add history store
     @StateObject private var appState = AppState()
 
     var body: some Scene {
@@ -15,6 +16,7 @@ struct AI_Corrector_SwiftApp: App {
                 .environmentObject(promptStore)
                 .environmentObject(modelStore)
                 .environmentObject(shortcutStore) // Inject shortcut store
+                .environmentObject(historyStore) // Inject history store
                 .environmentObject(appState)
         } label: {
             MenuBarLabelView(status: appState.status)
@@ -27,6 +29,7 @@ struct AI_Corrector_SwiftApp: App {
                 .environmentObject(promptStore)
                 .environmentObject(modelStore)
                 .environmentObject(shortcutStore) // Inject shortcut store
+                .environmentObject(historyStore) // Inject history store
                 .environmentObject(appState)
         }
     }

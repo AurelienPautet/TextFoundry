@@ -6,18 +6,20 @@ struct MasterPromptView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("Master Prompt")
-                .font(.largeTitle)
-                .bold()
-                .padding(.bottom, 8)
-            
-            Text("This prompt will be added before every specific prompt you run. Use it to set the global tone, context, or instructions for the AI.")
-                .foregroundColor(.secondary)
-                .padding(.bottom, 16)
-            
-            TextEditor(text: $masterPrompt)
-                .font(.body.monospaced())
-                .border(Color.gray.opacity(0.2), width: 1)
+            GroupBox(label: Text("Master Prompt")) {
+                VStack(alignment: .leading) {
+                    Text("This prompt will be added before every specific prompt you run. Use it to set the global tone, context, or instructions for the AI.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 8)
+                    
+                    TextEditor(text: $masterPrompt)
+                        .font(.body.monospaced())
+                        .scrollContentBackground(.hidden)
+                        .frame(maxHeight: .infinity)
+                }
+                .padding(4)
+            }
         }
         .padding()
         .onAppear(perform: loadPrompt)

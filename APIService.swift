@@ -94,5 +94,18 @@ class APIService {
         }
         return "Error parsing LM Studio response."
     }
+    
+    func fetchLMStudioModels(serverAddress: String) async throws -> [String] {
+        let endpoint = "\(serverAddress)/v1/models"
+        guard let url = URL(string: endpoint) else { throw URLError(.badURL) }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let dataArray = json["data"] as? [[String: Any]] {
+            return dataArray.compactMap { $0["id"] as? String }
+        }
+        return []
+    }
 }
 

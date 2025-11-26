@@ -8,10 +8,23 @@ class ModelStore: ObservableObject {
             saveModels()
         }
     }
+    @Published var lmStudioModels: [String] = []
+    
     private static let userDefaultsKey = "geminiModels"
 
     init() {
         loadModels()
+    }
+    
+    func fetchLMStudioModels(from address: String) async {
+        do {
+            let fetchedModels = try await APIService.shared.fetchLMStudioModels(serverAddress: address)
+            DispatchQueue.main.async {
+                self.lmStudioModels = fetchedModels
+            }
+        } catch {
+            print("Failed to fetch LM Studio models: \(error)")
+        }
     }
 
     private func saveModels() {
