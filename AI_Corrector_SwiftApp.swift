@@ -77,11 +77,11 @@ struct MenuBarLabelView: View {
         Group {
             switch appState.status {
             case .ready:
-                Image(systemName: "star")
+                Image("MenuBarIcon_Ready")
             case .busy:
-                Image(systemName: "star.fill")
+                Image("MenuBarIcon_Busy")
             case .error:
-                Image(systemName: "star.slash")
+                Image("MenuBarIcon_Error")
             }
         }
     }
