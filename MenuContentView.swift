@@ -9,6 +9,7 @@ extension Optional where Wrapped == String {
 struct MenuContentView: View {
     // Environment Objects
     @EnvironmentObject var promptStore: PromptStore
+    @EnvironmentObject var customPromptStore: CustomPromptHistoryStore
     @EnvironmentObject var modelStore: ModelStore
     @EnvironmentObject var shortcutStore: ShortcutStore
     @EnvironmentObject var historyStore: HistoryStore
@@ -23,7 +24,12 @@ struct MenuContentView: View {
 
     // Helper to get the selected prompt's name
     private var selectedPromptName: String {
-        promptStore.prompts.first(where: { $0.id == selectedPromptID })?.name ?? "Select Prompt"
+        if let prompt = promptStore.prompts.first(where: { $0.id == selectedPromptID }) {
+            return prompt.name
+        } else if let custom = customPromptStore.history.first(where: { $0.id == selectedPromptID }) {
+            return "Custom: \(custom.content.prefix(15))..."
+        }
+        return "Select Prompt"
     }
 
     var body: some View {
@@ -114,9 +120,24 @@ struct MenuContentView: View {
             }
 
             Menu {
-                ForEach(promptStore.prompts) { prompt in
-                    Button(prompt.name) {
-                        selectedPromptID = prompt.id
+                if !customPromptStore.history.isEmpty {
+                    Section("Recent Custom Prompts") {
+                        ForEach(customPromptStore.history.prefix(2)) { item in
+                            Button(action: {
+                                selectedPromptID = item.id
+                            }) {
+                                Text(item.content).lineLimit(1)
+                            }
+                        }
+                    }
+                    Divider()
+                }
+                
+                Section("Saved Prompts") {
+                    ForEach(promptStore.prompts) { prompt in
+                        Button(prompt.name) {
+                            selectedPromptID = prompt.id
+                        }
                     }
                 }
             } label: {

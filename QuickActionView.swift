@@ -8,17 +8,29 @@ struct QuickActionView: View {
     @State private var customPromptText: String = ""
     @State private var selectedIndex: Int = -1 // -1 means input field is selected
     @State private var eventMonitor: Any?
+    @FocusState private var isInputFocused: Bool
     
     var onSelect: (QuickActionSelection) -> Void
     var onCancel: () -> Void
     
     // Computed list of items
     private var recentPrompts: [CustomPromptHistoryItem] {
-        Array(customPromptStore.history.prefix(2))
+        if customPromptText.isEmpty {
+            return Array(customPromptStore.history.prefix(2))
+        } else {
+            return customPromptStore.history.filter { $0.content.localizedCaseInsensitiveContains(customPromptText) }
+        }
     }
     
     private var savedPrompts: [Prompt] {
-        promptStore.prompts
+        if customPromptText.isEmpty {
+            return promptStore.prompts
+        } else {
+            return promptStore.prompts.filter { 
+                $0.name.localizedCaseInsensitiveContains(customPromptText) || 
+                $0.content.localizedCaseInsensitiveContains(customPromptText)
+            }
+        }
     }
     
     private var totalCount: Int {
@@ -40,12 +52,13 @@ struct QuickActionView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                TextField("Type a custom prompt...", text: $customPromptText)
+                TextField("Type a custom prompt or search one", text: $customPromptText)
                     .textFieldStyle(.plain)
                     .font(.body)
                     .padding(10)
                     .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
                     .cornerRadius(8)
+                    .focused($isInputFocused)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(selectedIndex == -1 ? Color.accentColor : Color.clear, lineWidth: 2)
@@ -53,9 +66,31 @@ struct QuickActionView: View {
                     .onSubmit {
                         handleSelection()
                     }
+                    .onChange(of: customPromptText) { _, _ in
+                        selectedIndex = -1
+                    }
+                    .focused($isInputFocused) // Bind the focus state
             }
             .padding()
             .background(Color.clear)
+            
+            // Info Section
+            VStack(spacing: 8) {
+                HStack {
+                    Label(appState.selectedAIProvider, systemImage: "cpu")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    
+                    Spacer()
+                    
+                    Label(getSelectedModel(), systemImage: "cube")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
             
             Divider()
             
@@ -100,9 +135,9 @@ struct QuickActionView: View {
                     .padding(.vertical, 8)
                 }
                 .frame(height: min(CGFloat(totalCount * 44 + (recentPrompts.isEmpty ? 0 : 30) + (savedPrompts.isEmpty ? 0 : 30)), 300))
-                .onChange(of: selectedIndex) { newValue in
+                .onChange(of: selectedIndex) {
                     withAnimation {
-                        proxy.scrollTo(newValue, anchor: .center)
+                        proxy.scrollTo(selectedIndex, anchor: .center)
                     }
                 }
             }
@@ -112,6 +147,10 @@ struct QuickActionView: View {
         .cornerRadius(12)
         .onAppear {
             setupEventMonitor()
+            // Delay focus to ensure window is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isInputFocused = true
+            }
         }
         .onDisappear {
             if let monitor = eventMonitor {
@@ -166,6 +205,16 @@ struct QuickActionView: View {
                     onSelect(.savedPrompt(prompt.id))
                 }
             }
+        }
+    }
+    
+    private func getSelectedModel() -> String {
+        switch appState.selectedAIProvider {
+        case "Gemini": return appState.selectedGeminiModel
+        case "OpenAI": return appState.selectedOpenAIModel
+        case "LM Studio": return appState.selectedLMStudioModel
+        case "xAI Grok": return appState.selectedGrokModel
+        default: return "Unknown"
         }
     }
 }

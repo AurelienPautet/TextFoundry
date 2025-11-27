@@ -18,6 +18,9 @@ struct MainView: View {
                 Label("History", systemImage: "clock")
                     .tag(Panel.history)
                 
+                Label("Stats", systemImage: "chart.bar.xaxis")
+                    .tag(Panel.stats)
+                
                 Label("Settings", systemImage: "gearshape") // New icon
                     .tag(Panel.settings)
             }
@@ -34,6 +37,8 @@ struct MainView: View {
                 CustomPromptsView()
             case .history:
                 HistoryView()
+            case .stats:
+                StatsView()
             case .masterPrompt:
                 PromptListView()
             case .none:

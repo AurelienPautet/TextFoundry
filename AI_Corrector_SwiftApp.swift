@@ -34,6 +34,7 @@ struct AI_Corrector_SwiftApp: App {
         MenuBarExtra {
             MenuContentView()
                 .environmentObject(viewModel.promptStore)
+                .environmentObject(viewModel.customPromptHistoryStore)
                 .environmentObject(viewModel.modelStore)
                 .environmentObject(viewModel.shortcutStore)
                 .environmentObject(viewModel.historyStore)
@@ -42,7 +43,7 @@ struct AI_Corrector_SwiftApp: App {
                     SoundManager.shared.preloadSounds()
                 }
         } label: {
-            MenuBarLabelView(status: viewModel.appState.status)
+            MenuBarLabelView(appState: viewModel.appState)
         }
         .menuBarExtraStyle(.window) // .window gives a modern, popover-style menu
 
@@ -70,16 +71,18 @@ struct AI_Corrector_SwiftApp: App {
 
 // The view for the menu bar icon itself
 struct MenuBarLabelView: View {
-    let status: AppStatus
+    @ObservedObject var appState: AppState
     
     var body: some View {
-        switch status {
-        case .ready:
-            Image(systemName: "brain.head.profile")
-        case .busy:
-            Image(systemName: "hourglass")
-        case .error:
-            Image(systemName: "exclamationmark.triangle")
+        Group {
+            switch appState.status {
+            case .ready:
+                Image(systemName: "star")
+            case .busy:
+                Image(systemName: "star.fill")
+            case .error:
+                Image(systemName: "star.slash")
+            }
         }
     }
 }

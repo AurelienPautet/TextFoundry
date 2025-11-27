@@ -181,9 +181,19 @@ class HotkeyManager {
             promptContent = custom
             promptName = "Custom Prompt"
             self.customPromptHistoryStore?.addPrompt(custom)
-        } else if let id = promptID, let prompt = self.promptStore?.prompts.first(where: { $0.id == id }) {
-            promptContent = prompt.content
-            promptName = prompt.name
+        } else if let id = promptID {
+            if let prompt = self.promptStore?.prompts.first(where: { $0.id == id }) {
+                promptContent = prompt.content
+                promptName = prompt.name
+            } else if let customPrompt = self.customPromptHistoryStore?.history.first(where: { $0.id == id }) {
+                promptContent = customPrompt.content
+                promptName = "Custom Prompt"
+            } else {
+                print("Hotkey Error: No prompt selected.")
+                SoundManager.shared.play(named: "Basso")
+                DispatchQueue.main.async { self.appState?.status = .error(message: "No prompt selected.") }
+                return
+            }
         } else {
             print("Hotkey Error: No prompt selected.")
             SoundManager.shared.play(named: "Basso")
@@ -241,11 +251,11 @@ class HotkeyManager {
             ClipboardManager.write(response.text)
             try? await Task.sleep(for: .milliseconds(100))
             
-            if defaults.bool(forKey: "smartPaste") {
-                KeyboardManager.pasteAndMatchStyle()
-            } else {
-                KeyboardManager.paste()
-            }
+            // Always use standard paste (Cmd+V) because we are pasting plain text.
+            // This effectively matches the destination style in most apps.
+            // The "Smart Paste" option is kept for legacy reasons or if we add rich text later,
+            // but for now both paths do the same thing to ensure reliability.
+            KeyboardManager.paste()
             
             // Play success sound
             SoundManager.shared.play(named: "Glass")

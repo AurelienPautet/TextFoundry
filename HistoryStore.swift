@@ -2,7 +2,7 @@ import SwiftUI
 import Foundation
 import Combine
 
-struct CorrectionHistoryItem: Identifiable, Codable {
+struct CorrectionHistoryItem: Identifiable, Codable, Equatable {
     var id = UUID()
     let originalText: String
     let correctedText: String

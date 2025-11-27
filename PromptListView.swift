@@ -118,7 +118,7 @@ struct PromptListView: View {
         .onChange(of: selectedPromptID) {
             // Handle opening editor sheet for selected prompt
             if let selectedPromptID = selectedPromptID,
-               let index = promptStore.prompts.firstIndex(where: { $0.id == selectedPromptID }) {
+               let _ = promptStore.prompts.firstIndex(where: { $0.id == selectedPromptID }) {
                 DispatchQueue.main.async {
                     // Open the editor sheet by triggering a state change
                 }

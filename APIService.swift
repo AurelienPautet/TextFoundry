@@ -109,6 +109,11 @@ class APIService {
     }
     struct LMStudioModel: Decodable {
         let id: String
+        // Some APIs return 'object' or 'type' field, but standard OpenAI format is 'id', 'object', 'owned_by'
+        // LM Studio usually returns 'id' which is the model name.
+        // To filter embeddings, we might need to check the ID string if the API doesn't provide type.
+        // However, standard OpenAI /v1/models doesn't explicitly say "text-generation" vs "embedding" in a standard way across all providers.
+        // But usually embedding models have "embedding" or "embed" in the name.
     }
 
     func fetchLMStudioModels(serverAddress: String) async throws -> [String] {
@@ -128,7 +133,14 @@ class APIService {
         
         let (data, _) = try await URLSession.shared.data(from: url)
         let response = try JSONDecoder().decode(LMStudioModelResponse.self, from: data)
-        return response.data.map { $0.id }
+        
+        // Filter out embedding models based on common naming conventions
+        return response.data
+            .map { $0.id }
+            .filter { modelID in
+                let lower = modelID.lowercased()
+                return !lower.contains("embedding") && !lower.contains("embed")
+            }
     }
     
     func fetchOpenAIModels(apiKey: String, baseUrl: String = "https://api.openai.com/v1") async throws -> [String] {

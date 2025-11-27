@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CorrectorView: View {
     @EnvironmentObject var promptStore: PromptStore
+    @EnvironmentObject var customPromptStore: CustomPromptHistoryStore
     @EnvironmentObject var modelStore: ModelStore
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var historyStore: HistoryStore
@@ -9,6 +10,7 @@ struct CorrectorView: View {
     // UI State
     @State private var inputText: String = "Type or paste text here to correct."
     @State private var correctedText: String = "Corrected text will appear here."
+    @State private var promptContent: String = "" // Added for PromptSelector
 
     // Provider & Prompt Selection
     @State private var selectedPromptID: UUID?
@@ -94,15 +96,10 @@ struct CorrectorView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
                             
-                            Picker("Prompt", selection: $selectedPromptID) {
-                                Text("Select Prompt").tag(nil as UUID?)
-                                ForEach(promptStore.prompts) { prompt in
-                                    Text(prompt.name).tag(prompt.id as UUID?)
-                                }
-                            }
-                            .pickerStyle(.menu)
+                            PromptSelector(selection: $selectedPromptID, text: $promptContent)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .zIndex(1) // Ensure dropdown appears above other content
                     }
                 }
                 .padding()
@@ -246,7 +243,7 @@ struct CorrectorView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(isBusy || selectedPromptID == nil)
+                    .disabled(isBusy || promptContent.isEmpty)
                 }
                 .padding()
                 .background(Color(nsColor: .controlBackgroundColor))
@@ -289,10 +286,27 @@ struct CorrectorView: View {
             return
         }
 
-        guard let selectedPrompt = promptStore.prompts.first(where: { $0.id == selectedPromptID }) else {
-            appState.status = .error(message: "Please select a prompt.")
+        var promptName = ""
+        
+        if let id = selectedPromptID {
+            if let prompt = promptStore.prompts.first(where: { $0.id == id }) {
+                promptName = prompt.name
+                // Ensure content matches if user didn't edit it
+                if promptContent.isEmpty { promptContent = prompt.content }
+            } else if let customPrompt = customPromptStore.history.first(where: { $0.id == id }) {
+                promptName = "Custom Prompt"
+                if promptContent.isEmpty { promptContent = customPrompt.content }
+            }
+        }
+        
+        if promptContent.isEmpty {
+            appState.status = .error(message: "Please enter or select a prompt.")
             SoundManager.shared.play(named: "Basso")
             return
+        }
+        
+        if promptName.isEmpty {
+            promptName = "Custom Prompt"
         }
 
         let provider: APIService.AIProvider
@@ -332,7 +346,7 @@ struct CorrectorView: View {
 
         do {
             let masterPrompt = UserDefaults.standard.string(forKey: "masterPrompt") ?? ""
-            let combinedSystemPrompt = "\(masterPrompt)\n\n\(selectedPrompt.content)"
+            let combinedSystemPrompt = "\(masterPrompt)\n\n\(promptContent)"
 
             let response = try await APIService.shared.sendPrompt(
                 to: provider,
@@ -358,7 +372,7 @@ struct CorrectorView: View {
                 tokenCount: response.tokenCount,
                 tokensPerSecond: tps,
                 retryCount: response.retryCount,
-                promptTitle: selectedPrompt.name
+                promptTitle: promptName
             )
             historyStore.addItem(historyItem)
             appState.lastRunStats = historyItem
@@ -376,11 +390,25 @@ struct CorrectorView: View {
         geminiAPIKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
         
         if let promptIDString = UserDefaults.standard.string(forKey: "selectedPromptID"),
-           let promptID = UUID(uuidString: promptIDString),
-           promptStore.prompts.contains(where: { $0.id == promptID }) {
-            selectedPromptID = promptID
+           let promptID = UUID(uuidString: promptIDString) {
+            if let prompt = promptStore.prompts.first(where: { $0.id == promptID }) {
+                selectedPromptID = promptID
+                promptContent = prompt.content
+            } else if let custom = customPromptStore.history.first(where: { $0.id == promptID }) {
+                selectedPromptID = promptID
+                promptContent = custom.content
+            } else {
+                // Fallback to first available prompt
+                if let first = promptStore.prompts.first {
+                    selectedPromptID = first.id
+                    promptContent = first.content
+                }
+            }
         } else {
-            selectedPromptID = promptStore.prompts.first?.id
+            if let first = promptStore.prompts.first {
+                selectedPromptID = first.id
+                promptContent = first.content
+            }
         }
         
         if appState.selectedGeminiModel.isEmpty {

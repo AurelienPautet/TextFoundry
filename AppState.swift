@@ -13,6 +13,7 @@ enum Panel: String, CaseIterable {
     case prompts
     case customPrompts
     case history
+    case stats
     case settings
 }
 
