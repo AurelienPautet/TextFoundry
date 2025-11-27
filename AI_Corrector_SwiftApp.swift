@@ -39,6 +39,7 @@ struct AI_Corrector_SwiftApp: App {
                 .environmentObject(viewModel.shortcutStore)
                 .environmentObject(viewModel.historyStore)
                 .environmentObject(viewModel.appState)
+                .environmentObject(viewModel) // Pass the entire viewModel
                 .onAppear {
                     SoundManager.shared.preloadSounds()
                 }

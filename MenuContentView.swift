@@ -14,13 +14,13 @@ struct MenuContentView: View {
     @EnvironmentObject var shortcutStore: ShortcutStore
     @EnvironmentObject var historyStore: HistoryStore
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var appViewModel: AppViewModel // New AppViewModel environment object
     
     // Environment Actions
     @Environment(\.openWindow) var openWindow
 
     // State
     @State private var selectedPromptID: UUID?
-    @State private var hotkeyManager: HotkeyManager?
 
     // Helper to get the selected prompt's name
     private var selectedPromptName: String {
@@ -193,7 +193,7 @@ struct MenuContentView: View {
             Button(action: {
                 guard let promptID = selectedPromptID else { return }
                 Task {
-                    await hotkeyManager?.correctClipboard(promptID: promptID)
+                    await appViewModel.hotkeyManager?.correctClipboard(promptID: promptID)
                 }
             }) {
                 Label("Correct Clipboard", systemImage: "doc.on.clipboard")
@@ -243,4 +243,15 @@ struct MenuContentView: View {
             selectedPromptID = promptStore.prompts.first?.id
         }
     }
+}
+
+#Preview {
+    MenuContentView()
+        .environmentObject(PromptStore())
+        .environmentObject(CustomPromptHistoryStore())
+        .environmentObject(ModelStore())
+        .environmentObject(ShortcutStore())
+        .environmentObject(HistoryStore())
+        .environmentObject(AppState())
+        .environmentObject(AppViewModel())
 }

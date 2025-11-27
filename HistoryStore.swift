@@ -51,12 +51,23 @@ class HistoryStore: NSObject, ObservableObject {
     }
     
     private func saveHistory() {
-        if let encoded = try? JSONEncoder().encode(history) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let encoded = try? encoder.encode(history) {
             UserDefaults.standard.set(encoded, forKey: saveKey)
         }
     }
     
     private func loadHistory() {
+        if let data = UserDefaults.standard.data(forKey: saveKey) {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            if let decoded = try? decoder.decode([CorrectionHistoryItem].self, from: data) {
+                self.history = decoded
+                return
+            }
+        }
+        // If decoding fails, or no data, load from old format for migration
         if let data = UserDefaults.standard.data(forKey: saveKey),
            let decoded = try? JSONDecoder().decode([CorrectionHistoryItem].self, from: data) {
             self.history = decoded

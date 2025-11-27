@@ -1,5 +1,12 @@
 import SwiftUI
 
+struct UnifiedPrompt: Identifiable, Hashable {
+    let id: UUID
+    let name: String
+    let content: String
+    let isCustom: Bool
+}
+
 struct CorrectorView: View {
     @EnvironmentObject var promptStore: PromptStore
     @EnvironmentObject var customPromptStore: CustomPromptHistoryStore
@@ -30,6 +37,16 @@ struct CorrectorView: View {
     private var errorMessage: String {
         if case .error(let message) = appState.status { return message }
         return ""
+    }
+    
+    private var unifiedPrompts: [UnifiedPrompt] {
+        var prompts: [UnifiedPrompt] = promptStore.prompts.map {
+            UnifiedPrompt(id: $0.id, name: $0.name, content: $0.content, isCustom: false)
+        }
+        prompts.append(contentsOf: customPromptStore.history.map {
+            UnifiedPrompt(id: $0.id, name: String($0.content.prefix(50)) + "...", content: $0.content, isCustom: true)
+        })
+        return prompts
     }
 
     var body: some View {
@@ -96,10 +113,16 @@ struct CorrectorView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
                             
-                            PromptSelector(selection: $selectedPromptID, text: $promptContent)
+                            Picker("Prompt", selection: $selectedPromptID) {
+                                Text("None").tag(nil as UUID?)
+                                ForEach(unifiedPrompts) { prompt in
+                                    Text(prompt.name)
+                                        .tag(prompt.id as UUID?)
+                                }
+                            }
+                            .pickerStyle(.menu)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .zIndex(1) // Ensure dropdown appears above other content
                     }
                 }
                 .padding()
@@ -267,8 +290,13 @@ struct CorrectorView: View {
         .onChange(of: appState.selectedAIProvider) {
             UserDefaults.standard.set(appState.selectedAIProvider, forKey: "selectedAIProvider")
         }
-        .onChange(of: selectedPromptID) {
-            UserDefaults.standard.set(selectedPromptID?.uuidString, forKey: "selectedPromptID")
+        .onChange(of: selectedPromptID) { newPromptID in
+            if let id = newPromptID, let selectedPrompt = unifiedPrompts.first(where: { $0.id == id }) {
+                promptContent = selectedPrompt.content
+            } else {
+                promptContent = ""
+            }
+            UserDefaults.standard.set(newPromptID?.uuidString, forKey: "selectedPromptID")
         }
         .onChange(of: appState.selectedGeminiModel) {
             UserDefaults.standard.set(appState.selectedGeminiModel, forKey: "selectedGeminiModel")
@@ -391,24 +419,18 @@ struct CorrectorView: View {
         
         if let promptIDString = UserDefaults.standard.string(forKey: "selectedPromptID"),
            let promptID = UUID(uuidString: promptIDString) {
-            if let prompt = promptStore.prompts.first(where: { $0.id == promptID }) {
-                selectedPromptID = promptID
-                promptContent = prompt.content
-            } else if let custom = customPromptStore.history.first(where: { $0.id == promptID }) {
-                selectedPromptID = promptID
-                promptContent = custom.content
+            if let selected = unifiedPrompts.first(where: { $0.id == promptID }) {
+                selectedPromptID = selected.id
+                promptContent = selected.content
             } else {
-                // Fallback to first available prompt
-                if let first = promptStore.prompts.first {
-                    selectedPromptID = first.id
-                    promptContent = first.content
-                }
+                // Fallback to first available prompt if previously selected prompt is not found
+                selectedPromptID = unifiedPrompts.first?.id
+                promptContent = unifiedPrompts.first?.content ?? ""
             }
         } else {
-            if let first = promptStore.prompts.first {
-                selectedPromptID = first.id
-                promptContent = first.content
-            }
+            // Default to the first available prompt
+            selectedPromptID = unifiedPrompts.first?.id
+            promptContent = unifiedPrompts.first?.content ?? ""
         }
         
         if appState.selectedGeminiModel.isEmpty {

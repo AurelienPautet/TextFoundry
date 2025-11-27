@@ -1,30 +1,41 @@
 import SwiftUI
 import Charts
 
+struct RequestData: Identifiable {
+    let id = UUID()
+    let date: Date
+    let count: Int
+}
+
 struct StatsView: View {
     @EnvironmentObject var historyStore: HistoryStore
     @State private var timeRange: TimeRange = .all
-    
-    // Computed state to avoid re-calculating in body and causing update loops
-    @State private var filteredHistory: [CorrectionHistoryItem] = []
-    @State private var totalCorrections: Int = 0
-    @State private var avgResponseTime: Double = 0
-    @State private var avgTokensPerSecond: Double = 0
-    @State private var totalOutputTokens: Int = 0
-    @State private var providerUsage: [(String, Int)] = []
-    @State private var modelUsage: [(String, Int)] = []
-    
+
+    private struct ComputedStats {
+        var totalCorrections: Int = 0
+        var avgResponseTime: Double = 0
+        var avgTokensPerSecond: Double = 0
+        var totalOutputTokens: Int = 0
+        var providerUsage: [(String, Int)] = []
+        var modelUsage: [(String, Int)] = []
+        var requestsOverTime: [RequestData] = []
+    }
+
+    @State private var computedStats = ComputedStats()
+
     enum TimeRange: String, CaseIterable, Identifiable {
+        case hour = "Last Hour"
         case day = "Last 24h"
         case week = "Last 7 Days"
         case month = "Last 30 Days"
         case all = "All Time"
-        
         var id: String { self.rawValue }
     }
-    
+
     var body: some View {
-        VStack(spacing: 16) {
+                    ScrollView {
+
+        VStack(spacing: 4) {
             // Header & Filter
             HStack {
                 Text("Statistics")
@@ -37,34 +48,35 @@ struct StatsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 300)
+                .frame(width: 400)
+                .padding(.trailing, 16)
             }
-            .padding(.bottom, 8)
-            
-            ScrollView {
+            .padding(.bottom, 0)
+
                 VStack(spacing: 16) {
                     // Key Metrics Grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        StatCard(title: "Total Corrections", value: "\(totalCorrections)", icon: "number.circle.fill", color: .blue)
-                        StatCard(title: "Avg Response Time", value: String(format: "%.2fs", avgResponseTime), icon: "stopwatch.fill", color: .orange)
-                        StatCard(title: "Avg Speed", value: String(format: "%.1f t/s", avgTokensPerSecond), icon: "bolt.fill", color: .green)
-                        StatCard(title: "Total Output Tokens", value: "\(totalOutputTokens)", icon: "list.number", color: .purple)
-                        }
-                    
+                        StatCard(title: "Total Corrections", value: "\(computedStats.totalCorrections)", icon: "number.circle.fill", color: .blue)
+                        StatCard(title: "Avg Response Time", value: String(format: "%.2fs", computedStats.avgResponseTime), icon: "stopwatch.fill", color: .orange)
+                        StatCard(title: "Avg Speed", value: String(format: "%.1f t/s", computedStats.avgTokensPerSecond), icon: "bolt.fill", color: .green)
+                        StatCard(title: "Total Output Tokens", value: "\(computedStats.totalOutputTokens)", icon: "list.number", color: .purple)
+                    }
+
                     // Charts Section
                     HStack(alignment: .top, spacing: 20) {
                         // Provider Usage
                         VStack(alignment: .leading) {
                             Text("Provider Usage")
                                 .font(.headline)
-                            
-                            if providerUsage.isEmpty {
+
+                            if computedStats.providerUsage.isEmpty {
                                 Text("No data available")
                                     .foregroundColor(.secondary)
-                                    .frame(height: 200)
+                                    .frame(height: 200, alignment: .center)
                                     .frame(maxWidth: .infinity)
+
                             } else {
-                                Chart(providerUsage, id: \.0) { item in
+                                Chart(computedStats.providerUsage, id: \.0) { item in
                                     SectorMark(
                                         angle: .value("Count", item.1),
                                         innerRadius: .ratio(0.6),
@@ -83,19 +95,19 @@ struct StatsView: View {
                         .padding()
                         .background(Color(nsColor: .controlBackgroundColor))
                         .cornerRadius(12)
-                        
+
                         // Model Usage
                         VStack(alignment: .leading) {
                             Text("Model Usage")
                                 .font(.headline)
-                            
-                            if modelUsage.isEmpty {
+
+                            if computedStats.modelUsage.isEmpty {
                                 Text("No data available")
                                     .foregroundColor(.secondary)
-                                    .frame(height: 200)
+                                    .frame(height: 200, alignment: .center)
                                     .frame(maxWidth: .infinity)
                             } else {
-                                Chart(modelUsage, id: \.0) { item in
+                                Chart(computedStats.modelUsage, id: \.0) { item in
                                     BarMark(
                                         x: .value("Count", item.1),
                                         y: .value("Model", item.0)
@@ -109,22 +121,54 @@ struct StatsView: View {
                         .background(Color(nsColor: .controlBackgroundColor))
                         .cornerRadius(12)
                     }
+
+                    // Requests Over Time
+                    VStack(alignment: .leading) {
+                        Text("Requests Over Time")
+                            .font(.headline)
+
+                        if computedStats.requestsOverTime.isEmpty {
+                            Text("No data available")
+                                .foregroundColor(.secondary)
+                                .frame(height: 250, alignment: .center)
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Chart(computedStats.requestsOverTime) { item in
+                                BarMark(
+                                    x: .value("Date", item.date, unit: timeRange == .hour ? .hour : .day),
+                                    y: .value("Count", item.count)
+                                )
+                                .foregroundStyle(Color.accentColor.gradient)
+                            }
+                            .frame(height: 250)
+                        }
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(12)
                 }
                 .padding()
-            }
+            
         }
-        .padding(.horizontal)
+        .padding()
         .navigationTitle("Stats")
-        .onAppear { updateStats() }
-        .onChange(of: timeRange) { updateStats() }
-        .onChange(of: historyStore.history) { updateStats() }
+        .onAppear { updateStats(for: timeRange) }
+        .onChange(of: timeRange) {
+            updateStats(for: $0)
+        }
+        .onChange(of: historyStore.history) {
+             updateStats(for: timeRange)
+        }
+        }
     }
-    
-    private func updateStats() {
+
+    private func updateStats(for timeRange: TimeRange) {
         let now = Date()
         let filtered: [CorrectionHistoryItem]
-        
+
         switch timeRange {
+        case .hour:
+            filtered = historyStore.history.filter { $0.date >= Calendar.current.date(byAdding: .hour, value: -1, to: now)! }
         case .day:
             filtered = historyStore.history.filter { $0.date >= Calendar.current.date(byAdding: .day, value: -1, to: now)! }
         case .week:
@@ -134,33 +178,40 @@ struct StatsView: View {
         case .all:
             filtered = historyStore.history
         }
-        
-        self.filteredHistory = filtered
-        self.totalCorrections = filtered.count
-        
-        if filtered.count > 0 {
-            self.avgResponseTime = filtered.reduce(0) { $0 + $1.duration } / Double(filtered.count)
-            
+
+        var newStats = ComputedStats()
+        newStats.totalCorrections = filtered.count
+
+        if !filtered.isEmpty {
+            newStats.avgResponseTime = filtered.reduce(0) { $0 + $1.duration } / Double(filtered.count)
+
             let itemsWithTPS = filtered.compactMap { $0.tokensPerSecond }
             if !itemsWithTPS.isEmpty {
-                self.avgTokensPerSecond = itemsWithTPS.reduce(0, +) / Double(itemsWithTPS.count)
-            } else {
-                self.avgTokensPerSecond = 0
+                newStats.avgTokensPerSecond = itemsWithTPS.reduce(0, +) / Double(itemsWithTPS.count)
             }
-            
+
             let itemsWithTokens = filtered.compactMap { $0.tokenCount }
-            self.totalOutputTokens = itemsWithTokens.reduce(0, +)
-        } else {
-            self.avgResponseTime = 0
-            self.avgTokensPerSecond = 0
-            self.totalOutputTokens = 0
+            newStats.totalOutputTokens = itemsWithTokens.reduce(0, +)
         }
-        
+
         let groupedProvider = Dictionary(grouping: filtered, by: { $0.provider })
-        self.providerUsage = groupedProvider.map { ($0.key, $0.value.count) }.sorted { $0.1 > $1.1 }
-        
+        newStats.providerUsage = groupedProvider.map { ($0.key, $0.value.count) }.sorted { $0.1 > $1.1 }
+
         let groupedModel = Dictionary(grouping: filtered, by: { $0.model })
-        self.modelUsage = groupedModel.map { ($0.key, $0.value.count) }.sorted { $0.1 > $1.1 }
+        newStats.modelUsage = groupedModel.map { ($0.key, $0.value.count) }.sorted { $0.1 > $1.1 }
+
+        let calendar = Calendar.current
+        let componentsToExtract: Set<Calendar.Component> = timeRange == .hour ? [.year, .month, .day, .hour] : [.year, .month, .day]
+        let groupedByDate = Dictionary(grouping: filtered) { item in
+            let components = calendar.dateComponents(componentsToExtract, from: item.date)
+            return calendar.date(from: components)!
+        }
+
+        newStats.requestsOverTime = groupedByDate.map { (date, items) in
+            RequestData(date: date, count: items.count)
+        }.sorted { $0.date < $1.date }
+
+        self.computedStats = newStats
     }
 }
 
@@ -169,7 +220,7 @@ struct StatCard: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -178,7 +229,7 @@ struct StatCard: View {
                     .foregroundColor(color)
                 Spacer()
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(value)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
