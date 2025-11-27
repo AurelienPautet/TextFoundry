@@ -12,6 +12,9 @@ struct MainView: View {
                 Label("Prompts", systemImage: "list.bullet.rectangle")
                     .tag(Panel.prompts)
                 
+                Label("Custom Prompts", systemImage: "wand.and.stars")
+                    .tag(Panel.customPrompts)
+                
                 Label("History", systemImage: "clock")
                     .tag(Panel.history)
                 
@@ -27,6 +30,8 @@ struct MainView: View {
                 SettingsView()
             case .prompts:
                 PromptListView()
+            case .customPrompts:
+                CustomPromptsView()
             case .history:
                 HistoryView()
             case .masterPrompt:

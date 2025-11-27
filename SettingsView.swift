@@ -57,6 +57,7 @@ struct GeneralSettingsCard: View {
     @AppStorage("retryCount") private var retryCount: Int = 0
     @AppStorage("playSounds") private var playSounds: Bool = true
     @AppStorage("smartPaste") private var smartPaste: Bool = false
+    @AppStorage("showLoadingOverlay") private var showLoadingOverlay: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -69,6 +70,7 @@ struct GeneralSettingsCard: View {
                     Spacer()
                     if #available(macOS 13.0, *) {
                         Toggle("", isOn: $launchManager.isEnabled)
+                            .toggleStyle(.switch)
                     }
                 }
                 
@@ -78,6 +80,7 @@ struct GeneralSettingsCard: View {
                     Label("Play Sounds", systemImage: "speaker.wave.2")
                     Spacer()
                     Toggle("", isOn: $playSounds)
+                        .toggleStyle(.switch)
                 }
                 
                 Divider()
@@ -86,7 +89,18 @@ struct GeneralSettingsCard: View {
                     Label("Smart Paste", systemImage: "doc.on.clipboard")
                     Spacer()
                     Toggle("", isOn: $smartPaste)
+                        .toggleStyle(.switch)
                         .help("Pastes text matching the destination style (Option+Shift+Cmd+V)")
+                }
+                
+                Divider()
+                
+                HStack {
+                    Label("Show Loading Overlay", systemImage: "hourglass")
+                    Spacer()
+                    Toggle("", isOn: $showLoadingOverlay)
+                        .toggleStyle(.switch)
+                        .help("Show a loading indicator when processing text")
                 }
                 
                 Divider()

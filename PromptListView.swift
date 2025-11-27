@@ -62,16 +62,34 @@ struct PromptListView: View {
             if promptStore.prompts.isEmpty {
                 ContentUnavailableView("No Prompts", systemImage: "text.bubble", description: Text("Create your first prompt to get started."))
             } else {
-                List(selection: $selectedPromptID) {
-                    ForEach(filteredPrompts) { prompt in
-                        PromptRowCard(prompt: prompt, isSelected: selectedPromptID == prompt.id)
-                            .tag(prompt.id)
-                            .padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Drag and drop to reorder prompts.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
+                    List(selection: $selectedPromptID) {
+                        ForEach(filteredPrompts) { prompt in
+                            PromptRowCard(prompt: prompt, isSelected: selectedPromptID == prompt.id)
+                                .tag(prompt.id)
+                                .listRowBackground(Color.clear) // Remove default selection background
+                                .padding(.vertical, 4)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        promptStore.deletePrompt(id: prompt.id)
+                                        if selectedPromptID == prompt.id {
+                                            selectedPromptID = nil
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                        .onDelete(perform: deletePrompts)
+                        .onMove(perform: movePrompts)
                     }
-                    .onDelete(perform: deletePrompts)
-                    .onMove(perform: movePrompts)
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
         }
         .searchable(text: $searchText, placement: .toolbar, prompt: "Search prompts")
@@ -305,15 +323,22 @@ struct MasterPromptEditorSheet: View {
             .padding()
             
             VStack(alignment: .leading) {
-                Text("Description")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.secondary)
-                Text("This prompt will be added before every specific prompt you run. Use it to set the global tone, context, or instructions for the AI.")
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("Warning: Advanced Feature")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+                }
+                Text("This prompt will be added before every specific prompt you run. Only modify this if you understand how system prompts affect AI behavior.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+            .padding(.horizontal)
             
             VStack(alignment: .leading) {
                 Text("Content")

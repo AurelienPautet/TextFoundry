@@ -1,39 +1,60 @@
 import SwiftUI
+import Combine
+
+class AppViewModel: ObservableObject {
+    @Published var isReady = true // Dummy property to satisfy ObservableObject
+    let promptStore = PromptStore()
+    let modelStore = ModelStore()
+    let shortcutStore = ShortcutStore()
+    let historyStore = HistoryStore()
+    let customPromptHistoryStore = CustomPromptHistoryStore()
+    let appState = AppState()
+    
+    var hotkeyManager: HotkeyManager?
+    
+    init() {
+        self.hotkeyManager = HotkeyManager(
+            appState: appState, 
+            shortcutStore: shortcutStore, 
+            promptStore: promptStore, 
+            historyStore: historyStore,
+            customPromptHistoryStore: customPromptHistoryStore
+        )
+        self.hotkeyManager?.setupMonitoring()
+    }
+}
 
 @main
 struct AI_Corrector_SwiftApp: App {
     // State Objects for the whole app
-    @StateObject private var promptStore = PromptStore()
-    @StateObject private var modelStore = ModelStore()
-    @StateObject private var shortcutStore = ShortcutStore() // Add shortcut store
-    @StateObject private var historyStore = HistoryStore() // Add history store
-    @StateObject private var appState = AppState()
+    @StateObject private var viewModel = AppViewModel()
 
     var body: some Scene {
         // The new Menu Bar "scene"
         MenuBarExtra {
             MenuContentView()
-                .environmentObject(promptStore)
-                .environmentObject(modelStore)
-                .environmentObject(shortcutStore) // Inject shortcut store
-                .environmentObject(historyStore) // Inject history store
-                .environmentObject(appState)
+                .environmentObject(viewModel.promptStore)
+                .environmentObject(viewModel.modelStore)
+                .environmentObject(viewModel.shortcutStore)
+                .environmentObject(viewModel.historyStore)
+                .environmentObject(viewModel.appState)
                 .onAppear {
                     SoundManager.shared.preloadSounds()
                 }
         } label: {
-            MenuBarLabelView(status: appState.status)
+            MenuBarLabelView(status: viewModel.appState.status)
         }
         .menuBarExtraStyle(.window) // .window gives a modern, popover-style menu
 
         // A window for the main UI with sidebar, which can be opened from the menu
         WindowGroup(id: "main-window", for: String.self) { _ in
             MainView()
-                .environmentObject(promptStore)
-                .environmentObject(modelStore)
-                .environmentObject(shortcutStore) // Inject shortcut store
-                .environmentObject(historyStore) // Inject history store
-                .environmentObject(appState)
+                .environmentObject(viewModel.promptStore)
+                .environmentObject(viewModel.modelStore)
+                .environmentObject(viewModel.shortcutStore)
+                .environmentObject(viewModel.historyStore)
+                .environmentObject(viewModel.customPromptHistoryStore)
+                .environmentObject(viewModel.appState)
                 .task {
                     // Refresh models on startup
                     let defaults = UserDefaults.standard
@@ -41,7 +62,7 @@ struct AI_Corrector_SwiftApp: App {
                     let openAIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
                     let grokKey = defaults.string(forKey: "grokAPIKey") ?? ""
                     
-                    await modelStore.refreshAllModels(geminiKey: geminiKey, openAIKey: openAIKey, grokKey: grokKey)
+                    await viewModel.modelStore.refreshAllModels(geminiKey: geminiKey, openAIKey: openAIKey, grokKey: grokKey)
                 }
         }
     }

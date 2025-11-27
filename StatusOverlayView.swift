@@ -11,12 +11,8 @@ struct StatusOverlayView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+        .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
         .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
         .shadow(radius: 10)
     }
 }

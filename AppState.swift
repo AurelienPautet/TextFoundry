@@ -11,6 +11,7 @@ enum Panel: String, CaseIterable {
     case corrector
     case masterPrompt
     case prompts
+    case customPrompts
     case history
     case settings
 }

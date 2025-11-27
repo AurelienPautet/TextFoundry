@@ -1,6 +1,11 @@
 import SwiftUI
 import AppKit
 
+enum QuickActionSelection {
+    case savedPrompt(UUID)
+    case customPrompt(String)
+}
+
 class QuickActionPanel: NSPanel {
     static let shared = QuickActionPanel()
     
@@ -24,17 +29,19 @@ class QuickActionPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
     
-    func show(at point: NSPoint, promptStore: PromptStore, onSelect: @escaping (UUID) -> Void) {
+    func show(at point: NSPoint, promptStore: PromptStore, customPromptStore: CustomPromptHistoryStore, appState: AppState, onSelect: @escaping (QuickActionSelection) -> Void) {
         let contentView = QuickActionView(
-            onSelect: { [weak self] promptID in
+            onSelect: { [weak self] selection in
                 self?.close()
-                onSelect(promptID)
+                onSelect(selection)
             },
             onCancel: { [weak self] in
                 self?.close()
             }
         )
         .environmentObject(promptStore)
+        .environmentObject(customPromptStore)
+        .environmentObject(appState)
         
         self.contentView = NSHostingView(rootView: contentView)
         
@@ -65,6 +72,9 @@ class QuickActionPanel: NSPanel {
         }
         
         self.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        // Only activate the app if it's not already active to avoid bringing main window to front unnecessarily
+        if !NSApp.isActive {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }

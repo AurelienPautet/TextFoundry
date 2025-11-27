@@ -17,30 +17,41 @@ class StatusOverlayPanel: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.backgroundColor = .clear
         self.isOpaque = false
-        self.hasShadow = true
+        self.hasShadow = false // Let SwiftUI view handle shadow to avoid border artifacts
         self.isMovableByWindowBackground = false
         
         let contentView = StatusOverlayView()
-        self.contentView = NSHostingView(rootView: contentView)
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        hostingView.autoresizingMask = [.width, .height]
+        hostingView.frame = NSRect(x: 0, y: 0, width: 200, height: 60) // Set initial frame
+        self.contentView = hostingView
     }
     
     func show() {
-        // Center on the screen with the mouse or main screen
-        if let screen = NSScreen.main {
-            let screenRect = screen.visibleFrame
-            let panelSize = self.frame.size
-            
-            // Position at the bottom center or center
-            let x = screenRect.midX - (panelSize.width / 2)
-            let y = screenRect.minY + 100 // 100px from bottom
-            
-            self.setFrameOrigin(NSPoint(x: x, y: y))
+        // Ensure we are on main thread
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { self.show() }
+            return
         }
         
+        let mouseLocation = NSEvent.mouseLocation
+        let panelSize = self.frame.size
+        
+        // Position top-left at cursor position
+        let x = mouseLocation.x
+        let y = mouseLocation.y - panelSize.height
+        
+        self.setFrameOrigin(NSPoint(x: x, y: y))
         self.orderFront(nil)
     }
     
     func hide() {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { self.hide() }
+            return
+        }
         self.orderOut(nil)
     }
 }

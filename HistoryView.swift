@@ -12,6 +12,15 @@ struct HistoryView: View {
                     ForEach(historyStore.history) { item in
                         HistoryItemRow(item: item)
                             .padding(.vertical, 4)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    if let index = historyStore.history.firstIndex(where: { $0.id == item.id }) {
+                                        historyStore.deleteItem(at: IndexSet([index]))
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                     }
                     .onDelete(perform: historyStore.deleteItem)
                 }

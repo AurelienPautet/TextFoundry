@@ -4,6 +4,7 @@ struct GeneralSettingsView: View {
     @StateObject private var launchManager = LaunchAtLoginManager()
     @AppStorage("retryCount") private var retryCount: Int = 0
     @AppStorage("playSounds") private var playSounds: Bool = true
+    @AppStorage("showLoadingOverlay") private var showLoadingOverlay: Bool = true
 
     var body: some View {
         Form {
@@ -22,8 +23,9 @@ struct GeneralSettingsView: View {
             
             Section {
                 Toggle("Play Sounds", isOn: $playSounds)
+                Toggle("Show Loading Overlay", isOn: $showLoadingOverlay)
             } header: {
-                Text("Audio")
+                Text("Interface & Audio")
             }
             
             Section {

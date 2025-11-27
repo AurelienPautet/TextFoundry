@@ -9,12 +9,20 @@ class HotkeyManager {
     private weak var shortcutStore: ShortcutStore?
     private weak var promptStore: PromptStore?
     private weak var historyStore: HistoryStore?
+    private weak var customPromptHistoryStore: CustomPromptHistoryStore?
 
-    init(appState: AppState, shortcutStore: ShortcutStore, promptStore: PromptStore, historyStore: HistoryStore) {
+    init(appState: AppState, shortcutStore: ShortcutStore, promptStore: PromptStore, historyStore: HistoryStore, customPromptHistoryStore: CustomPromptHistoryStore) {
         self.appState = appState
         self.shortcutStore = shortcutStore
         self.promptStore = promptStore
         self.historyStore = historyStore
+        self.customPromptHistoryStore = customPromptHistoryStore
+    }
+    
+    deinit {
+        if let monitor = eventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 
     func setupMonitoring() {
@@ -92,11 +100,12 @@ class HotkeyManager {
         
         // 2. Show Panel
         DispatchQueue.main.async {
-            guard let promptStore = self.promptStore else { return }
+            guard let promptStore = self.promptStore, 
+                  let appState = self.appState,
+                  let customPromptStore = self.customPromptHistoryStore else { return }
+            
             let mouseLocation = NSEvent.mouseLocation
-            QuickActionPanel.shared.show(at: mouseLocation, promptStore: promptStore) { [weak self] promptID in
-                // Sync selection
-                UserDefaults.standard.set(promptID.uuidString, forKey: "selectedPromptID")
+            QuickActionPanel.shared.show(at: mouseLocation, promptStore: promptStore, customPromptStore: customPromptStore, appState: appState) { [weak self] selection in
                 
                 // Hide app to return focus to previous app
                 NSApp.hide(nil)
@@ -104,16 +113,26 @@ class HotkeyManager {
                 Task {
                     // Wait a bit for focus to switch back
                     try? await Task.sleep(for: .milliseconds(300))
-                    await self?.performCorrectionAction(for: promptID, textToCorrect: selectedText)
+                    
+                    switch selection {
+                    case .savedPrompt(let promptID):
+                        // Sync selection
+                        UserDefaults.standard.set(promptID.uuidString, forKey: "selectedPromptID")
+                        await self?.performCorrectionAction(for: promptID, textToCorrect: selectedText)
+                    case .customPrompt(let customText):
+                        await self?.performCorrectionAction(customPrompt: customText, textToCorrect: selectedText)
+                    }
                 }
             }
         }
     }
 
-    private func performCorrectionAction(for promptID: UUID, textToCorrect: String? = nil) async {
+    private func performCorrectionAction(for promptID: UUID? = nil, customPrompt: String? = nil, textToCorrect: String? = nil) async {
         DispatchQueue.main.async { 
             self.appState?.status = .busy 
-            StatusOverlayPanel.shared.show()
+            if UserDefaults.standard.bool(forKey: "showLoadingOverlay") {
+                StatusOverlayPanel.shared.show()
+            }
         }
         
         defer {
@@ -154,10 +173,21 @@ class HotkeyManager {
         let openAIAPIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
         let grokAPIKey = defaults.string(forKey: "grokAPIKey") ?? ""
         
-        guard let selectedPrompt = self.promptStore?.prompts.first(where: { $0.id == promptID }) else {
-            print("Hotkey Error: Could not find prompt with ID \(promptID).")
-            SoundManager.shared.play(named: "Basso") // Play error sound
-            DispatchQueue.main.async { self.appState?.status = .error(message: "Prompt not found.") }
+        // Determine Prompt Content
+        var promptContent = ""
+        var promptName = ""
+        
+        if let custom = customPrompt {
+            promptContent = custom
+            promptName = "Custom Prompt"
+            self.customPromptHistoryStore?.addPrompt(custom)
+        } else if let id = promptID, let prompt = self.promptStore?.prompts.first(where: { $0.id == id }) {
+            promptContent = prompt.content
+            promptName = prompt.name
+        } else {
+            print("Hotkey Error: No prompt selected.")
+            SoundManager.shared.play(named: "Basso")
+            DispatchQueue.main.async { self.appState?.status = .error(message: "No prompt selected.") }
             return
         }
         
@@ -198,7 +228,7 @@ class HotkeyManager {
 
         do {
             let masterPrompt = defaults.string(forKey: "masterPrompt") ?? ""
-            let combinedSystemPrompt = "\(masterPrompt)\n\n\(selectedPrompt.content)"
+            let combinedSystemPrompt = "\(masterPrompt)\n\n\(promptContent)"
             
             let response = try await APIService.shared.sendPrompt(
                 to: provider,
@@ -235,7 +265,7 @@ class HotkeyManager {
                 tokenCount: response.tokenCount,
                 tokensPerSecond: tps,
                 retryCount: response.retryCount,
-                promptTitle: selectedPrompt.name
+                promptTitle: promptName
             )
             self.historyStore?.addItem(historyItem)
             
@@ -368,12 +398,6 @@ class HotkeyManager {
             print("Clipboard Error: API call failed. \(error.localizedDescription)")
             SoundManager.shared.play(named: "Basso") // Play error sound
             DispatchQueue.main.async { self.appState?.status = .error(message: error.localizedDescription) }
-        }
-    }
-    
-    deinit {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
         }
     }
 }

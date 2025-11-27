@@ -1,5 +1,11 @@
 import SwiftUI
 
+extension Optional where Wrapped == String {
+    var isEmptyOrNil: Bool {
+        return self?.isEmpty ?? true
+    }
+}
+
 struct MenuContentView: View {
     // Environment Objects
     @EnvironmentObject var promptStore: PromptStore
@@ -38,10 +44,16 @@ struct MenuContentView: View {
             Divider()
             
             Menu {
-                Button("Gemini") { appState.selectedAIProvider = "Gemini" }
+                if !UserDefaults.standard.string(forKey: "geminiAPIKey").isEmptyOrNil {
+                    Button("Gemini") { appState.selectedAIProvider = "Gemini" }
+                }
                 Button("LM Studio") { appState.selectedAIProvider = "LM Studio" }
-                Button("OpenAI") { appState.selectedAIProvider = "OpenAI" }
-                Button("xAI Grok") { appState.selectedAIProvider = "xAI Grok" }
+                if !UserDefaults.standard.string(forKey: "openAIAPIKey").isEmptyOrNil {
+                    Button("OpenAI") { appState.selectedAIProvider = "OpenAI" }
+                }
+                if !UserDefaults.standard.string(forKey: "grokAPIKey").isEmptyOrNil {
+                    Button("xAI Grok") { appState.selectedAIProvider = "xAI Grok" }
+                }
             } label: {
                 Label(appState.selectedAIProvider, systemImage: "cpu")
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -196,10 +208,6 @@ struct MenuContentView: View {
     }
     
     private func setup() {
-        let newManager = HotkeyManager(appState: appState, shortcutStore: shortcutStore, promptStore: promptStore, historyStore: historyStore)
-        newManager.setupMonitoring()
-        self.hotkeyManager = newManager
-        
         // Fetch LM Studio models on startup
         let lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
         Task {
