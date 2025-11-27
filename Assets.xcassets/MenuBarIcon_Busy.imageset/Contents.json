@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "busy_16.png",
+      "filename" : "busy_22.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "busy_32.png",
+      "filename" : "busy_44.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "busy_48.png",
+      "filename" : "busy_66.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

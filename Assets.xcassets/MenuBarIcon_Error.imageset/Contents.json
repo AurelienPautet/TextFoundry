@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "error_16.png",
+      "filename" : "error_22.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "error_32.png",
+      "filename" : "error_44.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "error_48.png",
+      "filename" : "error_66.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
