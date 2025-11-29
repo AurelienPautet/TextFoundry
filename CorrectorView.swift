@@ -23,8 +23,10 @@ struct CorrectorView: View {
     @State private var selectedPromptID: UUID?
 
     // Settings
-    @State private var lmStudioAddress: String = ""
-    @State private var geminiAPIKey: String = ""
+    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = ""
+    @AppStorage("geminiAPIKey") private var geminiAPIKey: String = ""
+    @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
+    @AppStorage("grokAPIKey") private var grokAPIKey: String = ""
 
     // Constants
     let aiProviders = ["Gemini", "LM Studio", "OpenAI", "xAI Grok"]
@@ -36,7 +38,32 @@ struct CorrectorView: View {
     
     private var errorMessage: String {
         if case .error(let message) = appState.status { return message }
+        
+        // Check if current provider is configured
+        switch appState.selectedAIProvider {
+        case "LM Studio":
+            if lmStudioAddress.isEmpty { return "LM Studio address is missing." }
+        case "Gemini":
+            if geminiAPIKey.isEmpty { return "Gemini API Key is missing." }
+        case "OpenAI":
+            if openAIAPIKey.isEmpty { return "OpenAI API Key is missing." }
+        case "xAI Grok":
+            if grokAPIKey.isEmpty { return "xAI Grok API Key is missing." }
+        default:
+            break
+        }
+        
         return ""
+    }
+    
+    private var isModelSelected: Bool {
+        switch appState.selectedAIProvider {
+        case "Gemini": return !appState.selectedGeminiModel.isEmpty
+        case "OpenAI": return !appState.selectedOpenAIModel.isEmpty
+        case "xAI Grok": return !appState.selectedGrokModel.isEmpty
+        case "LM Studio": return true // Default to "local-model" if empty
+        default: return false
+        }
     }
     
     private var unifiedPrompts: [UnifiedPrompt] {
@@ -266,7 +293,7 @@ struct CorrectorView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(isBusy || promptContent.isEmpty)
+                    .disabled(isBusy || promptContent.isEmpty || !errorMessage.isEmpty || !isModelSelected)
                 }
                 .padding()
                 .background(Color(nsColor: .controlBackgroundColor))

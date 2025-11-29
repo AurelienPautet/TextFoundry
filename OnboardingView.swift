@@ -61,6 +61,12 @@ struct OnboardingView: View {
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 20)
+                            
+                            Button("Open Applications Folder") {
+                                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: "/Applications")
+                            }
+                            .buttonStyle(.link)
+                            .font(.caption)
                         }
                         .padding(.top, 10)
                     }

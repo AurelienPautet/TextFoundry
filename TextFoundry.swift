@@ -28,6 +28,10 @@ class AppViewModel: ObservableObject {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Attempt to register for accessibility on launch to ensure it appears in the list
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String : true]
+        AXIsProcessTrustedWithOptions(options)
+
         // Check readiness (permissions + providers)
         let appState = AppViewModel.shared.appState
         appState.checkReadiness()
@@ -39,8 +43,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             isReady = false
         }
         
-        if !isReady {
-            // Show onboarding window on launch if not ready (missing keys or permissions)
+        // Only show onboarding if user hasn't seen it yet
+        let hasSeenOnboarding = UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
+        
+        if !hasSeenOnboarding {
+            // Show onboarding window on launch
             DispatchQueue.main.async {
                 OnboardingWindowController.shared.show()
             }

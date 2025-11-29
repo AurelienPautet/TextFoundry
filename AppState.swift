@@ -69,25 +69,8 @@ class AppState: ObservableObject {
     }
     
     func checkReadiness() {
-        // Check permissions
-        if !isAccessibilityGranted {
-            self.status = .error(message: "Accessibility permission required")
-            return
-        }
-        
-        // Check providers
-        let defaults = UserDefaults.standard
-        let geminiKey = defaults.string(forKey: "geminiAPIKey") ?? ""
-        let openAIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
-        let grokKey = defaults.string(forKey: "grokAPIKey") ?? ""
-        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? ""
-        
-        let hasProvider = !geminiKey.isEmpty || !openAIKey.isEmpty || !grokKey.isEmpty || !lmStudioAddress.isEmpty
-        
-        if !hasProvider {
-            self.status = .error(message: "No provider configured")
-        } else {
-            self.status = .ready
-        }
+        // We default to ready. Specific checks (permissions, providers) 
+        // are now handled contextually in the UI where needed.
+        self.status = .ready
     }
 }
