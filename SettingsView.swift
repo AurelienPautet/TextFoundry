@@ -39,6 +39,9 @@ struct SettingsView: View {
                 // General Settings
                 GeneralSettingsCard()
                 
+                // Update Check
+                UpdateCheckCard()
+                
                 // Providers
                 ProvidersCard()
                     .environmentObject(modelStore)
@@ -58,6 +61,7 @@ struct GeneralSettingsCard: View {
     @AppStorage("playSounds") private var playSounds: Bool = true
     @AppStorage("smartPaste") private var smartPaste: Bool = false
     @AppStorage("showLoadingOverlay") private var showLoadingOverlay: Bool = true
+    @AppStorage("checkForUpdatesOnLaunch") private var checkForUpdatesOnLaunch: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -72,6 +76,15 @@ struct GeneralSettingsCard: View {
                         Toggle("", isOn: $launchManager.isEnabled)
                             .toggleStyle(.switch)
                     }
+                }
+                
+                Divider()
+                
+                HStack {
+                    Label("Check for Updates on Launch", systemImage: "arrow.triangle.2.circlepath")
+                    Spacer()
+                    Toggle("", isOn: $checkForUpdatesOnLaunch)
+                        .toggleStyle(.switch)
                 }
                 
                 Divider()
@@ -109,6 +122,39 @@ struct GeneralSettingsCard: View {
                     Label("Retry Attempts", systemImage: "arrow.clockwise")
                     Spacer()
                     Stepper("\(retryCount)", value: $retryCount, in: 0...5)
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+}
+
+struct UpdateCheckCard: View {
+    @StateObject private var updateChecker = UpdateChecker.shared
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Updates")
+                .font(.headline)
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Current Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button("Check Now") {
+                    updateChecker.checkForUpdates(isUserInitiated: true)
                 }
             }
         }

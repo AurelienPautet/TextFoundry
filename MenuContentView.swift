@@ -213,6 +213,14 @@ struct MenuContentView: View {
             .buttonStyle(.borderless)
             
             Button(action: {
+                UpdateChecker.shared.checkForUpdates(isUserInitiated: true)
+            }) {
+                Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            
+            Button(action: {
                 NSApplication.shared.terminate(nil)
             }) {
                 Label("Quit", systemImage: "power")

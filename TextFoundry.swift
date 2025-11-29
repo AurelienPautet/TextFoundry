@@ -32,6 +32,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String : true]
         AXIsProcessTrustedWithOptions(options)
 
+        // Check for updates on launch
+        if UserDefaults.standard.bool(forKey: "checkForUpdatesOnLaunch") {
+            UpdateChecker.shared.checkForUpdates(isUserInitiated: false)
+        }
+
         // Check readiness (permissions + providers)
         let appState = AppViewModel.shared.appState
         appState.checkReadiness()
