@@ -18,7 +18,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Startup")
             } footer: {
-                Text("Automatically start AI Corrector when you log in.")
+                Text("Automatically start TextFoundry when you log in.")
             }
             
             Section {

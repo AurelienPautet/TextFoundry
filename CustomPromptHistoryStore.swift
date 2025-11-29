@@ -22,10 +22,6 @@ class CustomPromptHistoryStore: ObservableObject {
             // Remove duplicates if any, to keep only the latest one
             self.history.removeAll { $0.content == content }
             self.history.insert(item, at: 0)
-            // Keep only last 50
-            if self.history.count > 50 {
-                self.history = Array(self.history.prefix(50))
-            }
             self.saveHistory()
         }
     }

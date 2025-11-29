@@ -44,7 +44,7 @@ struct QuickActionView: View {
                 HStack {
                     Image(systemName: "wand.and.stars")
                         .foregroundColor(.accentColor)
-                    Text("AI Corrector")
+                    Text("TextFoundry")
                         .font(.headline)
                     Spacer()
                     Text("Esc to cancel")
@@ -153,6 +153,7 @@ struct QuickActionView: View {
             }
         }
         .onDisappear {
+            // Critical: Remove the event monitor to prevent memory leaks and duplicate event handling
             if let monitor = eventMonitor {
                 NSEvent.removeMonitor(monitor)
             }

@@ -2,6 +2,8 @@ import SwiftUI
 import Combine
 
 class AppViewModel: ObservableObject {
+    static let shared = AppViewModel() // Singleton for access from AppDelegate/WindowController
+    
     @Published var isReady = true // Dummy property to satisfy ObservableObject
     let promptStore = PromptStore()
     let modelStore = ModelStore()
@@ -24,10 +26,21 @@ class AppViewModel: ObservableObject {
     }
 }
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if !UserDefaults.standard.bool(forKey: "hasSeenOnboarding5") {
+            // Show onboarding window on launch
+            DispatchQueue.main.async {
+                OnboardingWindowController.shared.show()
+            }
+        }
+    }
+}
+
 @main
-struct AI_Corrector_SwiftApp: App {
-    // State Objects for the whole app
-    @StateObject private var viewModel = AppViewModel()
+struct TextFoundryApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var viewModel = AppViewModel.shared
 
     var body: some Scene {
         // The new Menu Bar "scene"
@@ -73,17 +86,27 @@ struct AI_Corrector_SwiftApp: App {
 // The view for the menu bar icon itself
 struct MenuBarLabelView: View {
     @ObservedObject var appState: AppState
+    @Environment(\.openWindow) var openWindow
     
     var body: some View {
         Group {
             switch appState.status {
             case .ready:
                 Image("MenuBarIcon_Ready")
+                    .resizable()
             case .busy:
                 Image("MenuBarIcon_Busy")
+                    .resizable()
             case .error:
                 Image("MenuBarIcon_Error")
+                    .resizable()
             }
+        }
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 22, height: 22) // Standard menu bar icon size
+        .onReceive(NotificationCenter.default.publisher(for: .openMainWindow)) { _ in
+            openWindow(id: "main-window", value: "main")
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 }

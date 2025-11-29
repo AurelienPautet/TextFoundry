@@ -45,7 +45,7 @@ struct MenuContentView: View {
                 .padding(.bottom, 4)
             }
 
-            Text("AI Corrector").font(.headline)
+            Text("TextFoundry").font(.headline)
             
             Divider()
             
