@@ -125,7 +125,7 @@ struct PromptListView: View {
             }
         }
         .onAppear {
-            masterPrompt = UserDefaults.standard.string(forKey: masterPromptUserDefaultsKey) ?? "You are a helpful assistant."
+            masterPrompt = UserDefaults.standard.string(forKey: masterPromptUserDefaultsKey) ?? "You are a text correction assistant. Respond ONLY with the corrected text, preserving all original formatting (spacing, line breaks, punctuation style, capitalization). Do not include explanations, comments, or any text other than the corrected version."
         }
     }
     

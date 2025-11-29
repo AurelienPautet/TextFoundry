@@ -40,20 +40,28 @@ struct OnboardingView: View {
                 
                 if page.title == "Permissions" {
                     if appState.isAccessibilityGranted {
-                        Text("✅ Permission Granted")
+                        Text("Permission Granted")
                             .font(.headline)
                             .foregroundColor(.green)
                             .padding(.top, 10)
                     } else {
-                        Button("Grant Access") {
-                            let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String : true]
-                            AXIsProcessTrustedWithOptions(options)
-                            // Open System Settings
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                                NSWorkspace.shared.open(url)
+                        VStack(spacing: 10) {
+                            Button("Grant Access") {
+                                let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String : true]
+                                AXIsProcessTrustedWithOptions(options)
+                                // Open System Settings
+                                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                                    NSWorkspace.shared.open(url)
+                                }
                             }
+                            .buttonStyle(.borderedProminent)
+                            
+                            Text("If the app doesn't appear in the list automatically, please drag the TextFoundry app icon from your Applications folder into the list manually.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
                         }
-                        .buttonStyle(.borderedProminent)
                         .padding(.top, 10)
                     }
                 }

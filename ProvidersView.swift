@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProviderSettingsView: View {
     @EnvironmentObject var modelStore: ModelStore
-    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = "http://localhost:1234"
+    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = ""
     @AppStorage("geminiAPIKey") private var geminiAPIKey: String = ""
     @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
     @AppStorage("grokAPIKey") private var grokAPIKey: String = ""
@@ -16,7 +16,7 @@ struct ProviderSettingsView: View {
             Section("LM Studio") {
                 TextField("Server Address", text: $lmStudioAddress)
                     .textFieldStyle(.roundedBorder)
-                Text("Default: http://localhost:1234")
+                Text("e.g. http://localhost:1234")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

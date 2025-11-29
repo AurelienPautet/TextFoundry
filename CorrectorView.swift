@@ -414,7 +414,7 @@ struct CorrectorView: View {
     }
 
     private func loadSettings() {
-        lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? ""
         geminiAPIKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
         
         if let promptIDString = UserDefaults.standard.string(forKey: "selectedPromptID"),

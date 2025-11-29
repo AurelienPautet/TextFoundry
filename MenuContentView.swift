@@ -230,7 +230,7 @@ struct MenuContentView: View {
     
     private func setup() {
         // Fetch LM Studio models on startup
-        let lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        let lmStudioAddress = UserDefaults.standard.string(forKey: "lmStudioAddress") ?? ""
         Task {
             await modelStore.fetchLMStudioModels(from: lmStudioAddress)
         }

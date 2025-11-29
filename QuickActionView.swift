@@ -42,7 +42,10 @@ struct QuickActionView: View {
             // Header & Input
             VStack(spacing: 12) {
                 HStack {
-                    Image(systemName: "wand.and.stars")
+                    Image("MenuBarIcon_Busy")
+                        .renderingMode(.template)
+                        .resizable()
+                        .frame(width: 24, height: 24)
                         .foregroundColor(.accentColor)
                     Text("TextFoundry")
                         .font(.headline)

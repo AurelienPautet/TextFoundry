@@ -6,7 +6,7 @@ struct MainView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $appState.selectedPanel) {
-                Label("Corrector", systemImage: "text.magnifyingglass")
+                Label("Foundry", image: "MenuBarIcon_Busy")
                     .tag(Panel.corrector)
                 
                 Label("Prompts", systemImage: "list.bullet.rectangle")

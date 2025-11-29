@@ -125,7 +125,7 @@ struct GeneralSettingsCard: View {
 
 struct ProvidersCard: View {
     @EnvironmentObject var modelStore: ModelStore
-    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = "http://localhost:1234"
+    @AppStorage("lmStudioAddress") private var lmStudioAddress: String = ""
     @AppStorage("geminiAPIKey") private var geminiAPIKey: String = ""
     @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
     @AppStorage("grokAPIKey") private var grokAPIKey: String = ""

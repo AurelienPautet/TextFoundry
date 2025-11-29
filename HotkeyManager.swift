@@ -169,7 +169,7 @@ class HotkeyManager {
         let grokModel = defaults.string(forKey: "selectedGrokModel") ?? "grok-beta"
         
         let geminiAPIKey = defaults.string(forKey: "geminiAPIKey") ?? ""
-        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? ""
         let openAIAPIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
         let grokAPIKey = defaults.string(forKey: "grokAPIKey") ?? ""
         
@@ -317,7 +317,7 @@ class HotkeyManager {
         let grokModel = appState?.selectedGrokModel ?? defaults.string(forKey: "selectedGrokModel") ?? "grok-beta"
         
         let geminiAPIKey = defaults.string(forKey: "geminiAPIKey") ?? ""
-        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? "http://localhost:1234"
+        let lmStudioAddress = defaults.string(forKey: "lmStudioAddress") ?? ""
         let openAIAPIKey = defaults.string(forKey: "openAIAPIKey") ?? ""
         let grokAPIKey = defaults.string(forKey: "grokAPIKey") ?? ""
         

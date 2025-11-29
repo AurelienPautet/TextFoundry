@@ -1,10 +1,10 @@
 :root {
-  --primary-color: #2563eb;
-  --secondary-color: #1e40af;
+  --primary-color: #ea580c;
+  --secondary-color: #c2410c;
   --text-color: #1f2937;
   --bg-color: #ffffff;
-  --light-bg: #f3f4f6;
-  --accent-color: #3b82f6;
+  --light-bg: #fff7ed;
+  --accent-color: #fb923c;
 }
 
 * {
@@ -79,7 +79,7 @@ nav {
 .hero {
   padding: 8rem 2rem 4rem;
   text-align: center;
-  background: linear-gradient(to bottom, #eff6ff, #ffffff);
+  background: linear-gradient(to bottom, #fff7ed, #ffffff);
 }
 
 .hero h1 {
