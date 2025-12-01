@@ -1,0 +1,24 @@
+{
+  "images" : [
+    {
+      "filename" : "busy_22.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "busy_44.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "busy_66.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1,
+    "template-rendering-intent" : "template"
+  }
+}
