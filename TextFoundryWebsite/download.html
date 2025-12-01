@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download TextFoundry</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="index.html" class="logo">
+          <img src="logo.svg" alt="TextFoundry Logo" style="height: 30px" />
+          TextFoundry
+        </a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="index.html#features">Features</a>
+          <a href="#" class="btn-primary">Download</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="download-container">
+      <h1>Download TextFoundry</h1>
+      <p style="margin-bottom: 2rem; color: #6b7280">
+        The latest version for macOS.
+      </p>
+
+      <a
+        href="installer/1.0.0/TextFoundry_Installer.dmg"
+        class="btn-primary"
+        style="font-size: 1.2rem; padding: 1rem 3rem"
+      >
+        <i class="fab fa-apple"></i> Download for Mac
+      </a>
+      <p style="margin-top: 1rem; font-size: 0.9rem">
+        Version 1.0.0 • macOS 13.0+ • Apple Silicon & Intel
+      </p>
+
+      <div
+        style="
+          background-color: #fff3cd;
+          border: 1px solid #ffeeba;
+          color: #856404;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin: 2rem 0;
+          text-align: left;
+        "
+      >
+        <h4
+          style="
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          "
+        >
+          <i class="fas fa-exclamation-triangle"></i> Note for macOS Users
+        </h4>
+        <p style="margin-bottom: 1rem">
+          Since I am an independent developer and not paying Apple's enterprise
+          fees, your Mac may falsely flag this app as "damaged" to protect you.
+          <strong>It is not damaged.</strong>
+        </p>
+        <p style="margin-bottom: 0.5rem">To run the app:</p>
+        <ol style="margin-left: 1.5rem; margin-bottom: 1rem">
+          <li>
+            Download and open the DMG. Drag the app to your Applications folder.
+          </li>
+          <li>Open your <strong>Terminal</strong> app.</li>
+          <li>
+            Paste this code and hit Enter:
+            <div
+              style="
+                background: rgba(0, 0, 0, 0.05);
+                padding: 0.5rem;
+                border-radius: 4px;
+                margin: 0.5rem 0;
+                font-family: monospace;
+                user-select: all;
+              "
+            >
+              xattr -cr /Applications/TextFoundry.app
+            </div>
+          </li>
+        </ol>
+        <p>You can now open the app normally!</p>
+      </div>
+
+      <div class="version-info">
+        <h3>What's New in 1.0.0</h3>
+        <ul>
+          <li>
+            <strong>Quick Actions:</strong> New floating panel for instant
+            access.
+          </li>
+          <li>
+            <strong>Custom Prompts:</strong> Create and save your own correction
+            recipes.
+          </li>
+          <li>
+            <strong>Unlimited History:</strong> No more limits on your custom
+            prompt history.
+          </li>
+          <li>
+            <strong>Performance:</strong> Faster startup and reduced memory
+            usage.
+          </li>
+        </ul>
+      </div>
+
+      <div style="text-align: left; margin-top: 3rem">
+        <h3>Installation Instructions</h3>
+        <ol style="margin-left: 1.5rem; margin-top: 1rem; line-height: 1.8">
+          <li>Download the <code>TextFoundry.dmg</code> file.</li>
+          <li>
+            Open the disk image and drag the app to your Applications folder.
+          </li>
+          <li>Launch TextFoundry from your Applications folder.</li>
+          <li>Follow the onboarding steps to set up your API keys.</li>
+        </ol>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2025 TextFoundry. All rights reserved.</p>
+    </footer>
+  </body>
+</html>
