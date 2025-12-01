@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 struct UpdateInfo: Codable {
     let version: String
@@ -14,8 +15,7 @@ class UpdateChecker: ObservableObject {
     @Published var latestVersion: String = ""
     @Published var updateInfo: UpdateInfo?
     
-    // REPLACE THIS WITH YOUR ACTUAL WEBSITE URL
-    private let versionURL = URL(string: "https://textfoundry.pautet.net/version.json")!
+    private let versionURL = URL(string: "https://aurelien.pautet.net/TextFoundry/version.json")!
     
     func checkForUpdates(isUserInitiated: Bool = false) {
         Task {
